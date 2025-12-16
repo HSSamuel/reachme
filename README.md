@@ -1,16 +1,46 @@
-# React + Vite
+# ReachMe ⚡
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+ReachMe is a professional, fully customizable Link-in-Bio platform built for creators, entrepreneurs, and businesses. It allows users to unify their digital presence, track analytics, sell products, and engage with their audience through a single, shareable link.
 
-Currently, two official plugins are available:
+## 🚀 Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### 🔗 Content Management
 
-## React Compiler
+- **Unlimited Links**: Add, edit, and reorder links with a simple drag-and-drop interface.
+- **Link Locking**: Secure sensitive links with PIN codes (Gate Code).
+- **Rich Media**: Auto-embed YouTube videos and Spotify tracks directly on your profile.
+- **Thumbnails**: Upload custom icons or thumbnails for every link.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 🎨 Visual Customization
 
-## Expanding the ESLint configuration
+- **Themes**: Choose from professionally designed themes (Classic, Dark, Blue, Nature, Matrix).
+- **Custom Styling**: Set custom backgrounds (colors or images), font families, and button shapes.
+- **Live Preview**: See changes instantly on a realistic mobile mockup as you edit.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 📊 Deep Analytics (Insights)
+
+- **Performance Tracking**: Monitor total views, link clicks, and Click-Through Rate (CTR).
+- **Audience Data**: Visualize top traffic sources, visitor countries, and device types.
+- **Activity Charts**: View engagement trends over the last 7 days.
+
+### 🛒 Monetization & Shop
+
+- **Digital Shop**: Showcase products with images, prices, and direct purchase links.
+- **Support & Tipping**: Enable a "Buy me a coffee" or support button with direct payment integration (PayPal, etc.).
+
+### ⚙️ Advanced Settings
+
+- **SEO**: Customize meta titles and descriptions for better search engine visibility.
+- **Social Icons**: Display icons for all your social media platforms (Instagram, Twitter, GitHub, LinkedIn, etc.).
+- **QR Code**: Generate and download a custom QR code for your profile.
+- **Verified Badge**: Official verification system for trusted accounts.
+
+## 🛠️ Tech Stack
+
+- **Frontend**: React 18 (Vite)
+- **Styling**: Tailwind CSS
+- **Backend & Auth**: Supabase (PostgreSQL)
+- **Routing**: React Router v6
+- **State & Drag-n-Drop**: @hello-pangea/dnd
+- **Icons**: lucide-react, react-icons
+- **Notifications**: react-hot-toast
