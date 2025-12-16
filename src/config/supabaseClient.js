@@ -1,8 +1,12 @@
+// 1. THIS IMPORT MUST BE HERE
+import { createClient } from "@supabase/supabase-js";
+
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
 
-// Temporary Debugging
-console.log("DEBUG URL:", supabaseUrl); // Should print your URL
-console.log("DEBUG KEY Length:", supabaseKey?.length); // Should print a number (e.g., 200+)
+// Console logs for debugging (optional)
+console.log("Supabase URL:", supabaseUrl);
+console.log("Supabase Key:", supabaseKey);
 
+// 2. Initialize
 export const supabase = createClient(supabaseUrl, supabaseKey);
