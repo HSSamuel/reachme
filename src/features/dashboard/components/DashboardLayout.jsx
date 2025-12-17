@@ -1,31 +1,357 @@
-import { Sidebar } from "../../../components/layout/Sidebar";
-import { Outlet, Navigate } from "react-router-dom";
+import { Outlet, NavLink, useNavigate, Link } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
+import { useProfile } from "../../../hooks/useProfile";
+import {
+  LayoutDashboard,
+  Link as LinkIcon,
+  Palette,
+  BarChart3,
+  Settings,
+  LogOut,
+  ShoppingBag,
+  Menu,
+  X,
+  User,
+  ChevronDown,
+  Share2,
+  Download,
+  Copy,
+  Check,
+  Grid,
+  Globe,
+} from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import toast from "react-hot-toast";
 
 export function DashboardLayout() {
-  const { session, loading } = useAuthStore();
+  const { signOut } = useAuthStore();
+  const { profile } = useProfile();
+  const navigate = useNavigate();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
-      </div>
-    );
-  }
+  // State
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  // Protected Route Logic: Redirect if not logged in
-  if (!session) {
-    return <Navigate to="/login" replace />;
-  }
+  // Refs
+  const profileRef = useRef(null);
+  const navRef = useRef(null);
+  const mobileMenuRef = useRef(null);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/login");
+  };
+
+  // Close dropdowns if clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setProfileOpen(false);
+      }
+      if (navRef.current && !navRef.current.contains(event.target)) {
+        setNavOpen(false);
+      }
+      if (
+        mobileMenuRef.current &&
+        !mobileMenuRef.current.contains(event.target)
+      ) {
+        setMobileMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleCopyLink = () => {
+    const url = `${window.location.origin}/${profile?.username}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    toast.success("Link copied!");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDownloadQR = async () => {
+    try {
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${window.location.origin}/${profile?.username}`;
+      const response = await fetch(qrUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${profile?.username}-qr.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success("QR Code downloaded!");
+    } catch (error) {
+      toast.error("Could not download QR Code");
+    }
+  };
+
+  const navItems = [
+    { icon: LayoutDashboard, label: "Overview", path: "/dashboard" },
+    { icon: LinkIcon, label: "Links", path: "/dashboard/editor" },
+    { icon: Palette, label: "Appearance", path: "/dashboard/appearance" },
+    { icon: BarChart3, label: "Analytics", path: "/dashboard/analytics" },
+    { icon: ShoppingBag, label: "Shop", path: "/dashboard/shop" },
+    { icon: Settings, label: "Settings", path: "/dashboard/settings" },
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Sidebar />
+    <div className="min-h-screen font-sans text-slate-900 bg-transparent">
+      {/* 1. THE TOPBAR (Dark Glass Theme) */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/90 backdrop-blur-xl border-b border-white/10 shadow-xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            {/* LEFT: BRAND LOGO */}
+            <Link
+              to="/dashboard"
+              className="flex items-center gap-3 flex-shrink-0 group"
+            >
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-accent-600 flex items-center justify-center text-white shadow-lg shadow-brand-500/20 group-hover:scale-105 transition-transform">
+                <Globe size={20} />
+              </div>
+              <span className="text-xl font-bold text-white tracking-tight hidden sm:block">
+                ReachMe
+              </span>
+            </Link>
 
-      {/* Main Content Area (Offset by sidebar width) */}
-      <main className="pl-20 lg:pl-64 transition-all duration-300">
-        <div className="max-w-7xl mx-auto p-4 md:p-8">
-          {/* <Outlet /> renders the child route (Editor, Analytics, etc.) */}
+            {/* RIGHT: ACTIONS */}
+            <div className="flex items-center gap-3 md:gap-4">
+              {/* A. MENU DROPDOWN (Desktop Only) */}
+              <div className="relative hidden lg:block" ref={navRef}>
+                <button
+                  onClick={() => setNavOpen(!navOpen)}
+                  className={`
+                    flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-200
+                    ${
+                      navOpen
+                        ? "bg-slate-800 border-brand-500/50 text-white"
+                        : "bg-slate-800/50 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 hover:border-slate-600"
+                    }
+                  `}
+                >
+                  <Grid size={18} />
+                  <span className="text-sm font-medium">Menu</span>
+                  <ChevronDown
+                    size={14}
+                    className={`transition-transform ${
+                      navOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {/* Desktop Dropdown Content */}
+                {navOpen && (
+                  <div className="absolute top-full right-0 mt-3 w-60 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 animate-fade-in origin-top-right">
+                    <div className="grid gap-1">
+                      {navItems.map((item) => (
+                        <NavLink
+                          key={item.path}
+                          to={item.path}
+                          onClick={() => setNavOpen(false)}
+                          end={item.path === "/dashboard"}
+                          className={({ isActive }) => `
+                              flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors
+                              ${
+                                isActive
+                                  ? "bg-brand-50 text-brand-600"
+                                  : "text-slate-600 hover:bg-slate-50"
+                              }
+                            `}
+                        >
+                          <item.icon size={18} />
+                          {item.label}
+                        </NavLink>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* B. SHARE BUTTON */}
+              <button
+                onClick={() => setShareOpen(true)}
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-brand-600 text-white rounded-full text-sm font-bold hover:bg-brand-500 transition-all shadow-lg shadow-brand-900/20 active:scale-95 border border-transparent"
+              >
+                <Share2 size={16} />
+                <span className="hidden sm:inline">Share</span>
+              </button>
+
+              {/* C. PROFILE DROPDOWN (Visible on ALL Screens now) */}
+              <div className="relative" ref={profileRef}>
+                <button
+                  onClick={() => setProfileOpen(!profileOpen)}
+                  className="flex items-center gap-2 p-1 pr-2 rounded-full hover:bg-white/10 border border-transparent transition-all"
+                >
+                  <div className="w-9 h-9 rounded-full bg-slate-800 overflow-hidden border-2 border-slate-700 shadow-sm">
+                    {profile?.avatar_url ? (
+                      <img
+                        src={profile.avatar_url}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-400">
+                        <User size={18} />
+                      </div>
+                    )}
+                  </div>
+                  {/* Chevron only on desktop to save mobile space */}
+                  <ChevronDown
+                    size={14}
+                    className="text-slate-400 hidden sm:block"
+                  />
+                </button>
+
+                {profileOpen && (
+                  <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 animate-fade-in z-50 origin-top-right">
+                    {/* CLICKABLE PROFILE HEADER */}
+                    <Link
+                      to="/dashboard/settings"
+                      onClick={() => setProfileOpen(false)}
+                      className="block px-4 py-3 border-b border-slate-50 hover:bg-slate-50 transition-colors group"
+                    >
+                      <p className="text-sm font-bold text-slate-900 truncate">
+                        @{profile?.username || "user"}
+                      </p>
+                      <div className="flex items-center gap-1 text-xs text-brand-600 font-medium mt-0.5 group-hover:underline">
+                        Manage Account
+                      </div>
+                    </Link>
+
+                    <div className="pt-1">
+                      <button
+                        onClick={handleSignOut}
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                      >
+                        <LogOut size={16} />
+                        Sign Out
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* D. MOBILE MENU TOGGLE (Hamburger - Contains only Links) */}
+              <div className="lg:hidden relative" ref={mobileMenuRef}>
+                <button
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  className={`
+                    p-2 rounded-lg transition-colors
+                    ${
+                      mobileMenuOpen
+                        ? "bg-slate-800 text-white"
+                        : "text-slate-300 hover:bg-white/10 hover:text-white"
+                    }
+                  `}
+                >
+                  {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                </button>
+
+                {/* MOBILE DROPDOWN (Contains Text Links Only) */}
+                {mobileMenuOpen && (
+                  <div className="absolute top-full right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 animate-fade-in z-50 origin-top-right">
+                    <div className="grid gap-1">
+                      {navItems.map((item) => (
+                        <NavLink
+                          key={item.path}
+                          to={item.path}
+                          onClick={() => setMobileMenuOpen(false)}
+                          end={item.path === "/dashboard"}
+                          className={({ isActive }) => `
+                              flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-colors
+                              ${
+                                isActive
+                                  ? "bg-brand-50 text-brand-600"
+                                  : "text-slate-600 hover:bg-slate-50"
+                              }
+                            `}
+                        >
+                          <item.icon
+                            size={18}
+                            className={
+                              window.location.pathname === item.path
+                                ? "text-brand-600"
+                                : "text-slate-400"
+                            }
+                          />
+                          {item.label}
+                        </NavLink>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* 3. SHARE MODAL */}
+      {shareOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-sm relative transform transition-all scale-100">
+            <button
+              onClick={() => setShareOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 bg-slate-100 rounded-full p-1"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="text-center mb-6">
+              <div className="w-12 h-12 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Share2 size={24} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900">
+                Share your profile
+              </h3>
+              <p className="text-sm text-slate-500">
+                Get more visitors by sharing your link.
+              </p>
+            </div>
+
+            <div className="flex justify-center mb-6">
+              <div className="p-4 bg-white border-2 border-slate-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${window.location.origin}/${profile?.username}&color=4f46e5`}
+                  alt="QR Code"
+                  className="w-48 h-48"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-600 truncate flex items-center">
+                  {window.location.origin}/{profile?.username}
+                </div>
+                <button
+                  onClick={handleCopyLink}
+                  className="bg-slate-900 text-white px-4 rounded-xl hover:bg-slate-800 transition-colors flex items-center justify-center"
+                >
+                  {copied ? <Check size={18} /> : <Copy size={18} />}
+                </button>
+              </div>
+
+              <button
+                onClick={handleDownloadQR}
+                className="w-full flex items-center justify-center gap-2 py-3 border border-slate-200 rounded-xl text-slate-700 font-bold hover:bg-slate-50 transition-colors"
+              >
+                <Download size={18} />
+                Download QR Code
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. MAIN CONTENT */}
+      <main className="pt-24 px-4 pb-12 max-w-7xl mx-auto min-h-screen">
+        <div className="animate-fade-in">
           <Outlet />
         </div>
       </main>

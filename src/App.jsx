@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { useAuthStore } from "./store/authStore";
 import { PublicProfile } from "./features/public-profile/components/PublicProfile";
@@ -8,6 +8,12 @@ import { LoginForm } from "./features/auth/components/LoginForm";
 import { DashboardLayout } from "./features/dashboard/components/DashboardLayout";
 import { DashboardHome } from "./features/dashboard/components/DashboardHome";
 import { LinkEditor } from "./features/editor/components/LinkEditor";
+// 1. CHANGE THIS IMPORT:
+import { Analytics } from "./features/dashboard/components/Analytics";
+import { ShopManager } from "./features/shop/components/ShopManager";
+import { Settings } from "./features/dashboard/components/Settings";
+import { LandingPage } from "./pages/LandingPage";
+import { AppearanceEditor } from "./features/editor/components/AppearanceEditor";
 
 export default function App() {
   const initializeAuth = useAuthStore((state) => state.initializeAuth);
@@ -28,12 +34,17 @@ export default function App() {
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<DashboardHome />} />
           <Route path="editor" element={<LinkEditor />} />
-          <Route path="analytics" element={<div>Analytics Coming Soon</div>} />
-          <Route path="settings" element={<div>Settings Coming Soon</div>} />
+
+          {/* 2. UPDATE THIS ROUTE TO USE THE PAGE COMPONENT */}
+          <Route path="appearance" element={<AppearanceEditor />} />
+
+          <Route path="analytics" element={<Analytics />} />
+          <Route path="shop" element={<ShopManager />} />
+          <Route path="settings" element={<Settings />} />
         </Route>
 
         {/* Public Profile Route */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<LandingPage />} />
         <Route path="/:username" element={<PublicProfile />} />
       </Routes>
     </BrowserRouter>

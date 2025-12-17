@@ -1,114 +1,154 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "../../../config/supabaseClient";
+import { useProfile } from "../../../hooks/useProfile";
 import toast from "react-hot-toast";
-import { useAuthStore } from "../../../store/authStore";
 
 export function useLinks() {
+  const { profile } = useProfile();
   const [links, setLinks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuthStore();
 
-  // 1. Fetch Links on Load
+  // 1. FETCH LINKS
   useEffect(() => {
-    if (!user) return;
+    if (!profile?.id) return;
 
-    async function fetchLinks() {
-      // First get the profile ID for this user
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .single();
-
-      if (profile) {
-        const { data: linkData, error } = await supabase
+    const fetchLinks = async () => {
+      try {
+        const { data, error } = await supabase
           .from("links")
           .select("*")
           .eq("profile_id", profile.id)
-          .order("position", { ascending: true });
+          .order("sort_order", { ascending: true }); // Important: Sort by order
 
-        if (error) toast.error("Could not load links");
-        else setLinks(linkData || []);
+        if (error) throw error;
+        setLinks(data || []);
+      } catch (error) {
+        console.error("Fetch Error:", error.message);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    }
-
-    fetchLinks();
-  }, [user]);
-
-  // 2. Add Link
-  const addLink = async (title, url) => {
-    const tempId = Date.now();
-    // Optimistic Update
-    const newLink = {
-      id: tempId,
-      title,
-      url,
-      position: links.length,
-      active: true,
     };
 
-    setLinks([...links, newLink]);
+    fetchLinks();
+  }, [profile?.id]);
 
-    // DB Insert
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("user_id", user.id)
-      .single();
+  // 2. ADD LINK
+  const addLink = async ({ title, url }) => {
+    try {
+      if (!profile?.id) throw new Error("Profile not loaded");
 
-    const { data, error } = await supabase
-      .from("links")
-      .insert({
-        user_id: user.id,
-        profile_id: profile.id,
-        title,
-        url,
-        position: links.length,
-      })
-      .select()
-      .single();
+      // New link goes to the bottom
+      const currentLength = links.length;
 
-    if (error) {
-      setLinks(links); // Revert
-      toast.error("Failed to add link");
-    } else {
-      // Replace temp ID with real DB ID
-      setLinks((prev) => prev.map((l) => (l.id === tempId ? data : l)));
-      toast.success("Link added");
+      const { data, error } = await supabase
+        .from("links")
+        .insert([
+          {
+            profile_id: profile.id,
+            user_id: profile.id,
+            title,
+            url,
+            is_active: true,
+            sort_order: currentLength,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setLinks((prev) => [...prev, data]);
+      return data;
+    } catch (error) {
+      toast.error(`Error: ${error.message}`);
+      throw error;
     }
   };
 
-  // 3. Delete Link
+  // 3. UPDATE LINK
+  const updateLink = async (id, updates) => {
+    try {
+      // Optimistic Update
+      setLinks((prev) =>
+        prev.map((link) => (link.id === id ? { ...link, ...updates } : link))
+      );
+
+      const { error } = await supabase
+        .from("links")
+        .update(updates)
+        .eq("id", id);
+      if (error) throw error;
+    } catch (error) {
+      console.error("Update error", error);
+      toast.error("Failed to update");
+    }
+  };
+
+  // 4. DELETE LINK
   const deleteLink = async (id) => {
-    const oldLinks = [...links];
-    setLinks(links.filter((l) => l.id !== id));
-
-    const { error } = await supabase.from("links").delete().eq("id", id);
-
-    if (error) {
-      setLinks(oldLinks);
+    try {
+      setLinks((prev) => prev.filter((link) => link.id !== id));
+      const { error } = await supabase.from("links").delete().eq("id", id);
+      if (error) throw error;
+    } catch (error) {
       toast.error("Failed to delete");
     }
   };
 
-  // 4. Reorder Links (Drag & Drop Logic)
-  const reorderLinks = async (newLinks) => {
-    setLinks(newLinks); // Immediate UI update
+  // 5. UPLOAD THUMBNAIL
+  const uploadThumbnail = async (id, file) => {
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${id}-${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
 
-    // Prepare updates for DB
-    const updates = newLinks.map((link, index) => ({
-      id: link.id,
-      position: index,
-      // We need these to satisfy RLS/Supabase requirements typically
-      title: link.title,
-      url: link.url,
-      user_id: user.id,
-    }));
+      const { error: uploadError } = await supabase.storage
+        .from("link_thumbnails")
+        .upload(filePath, file);
 
-    const { error } = await supabase.from("links").upsert(updates);
-    if (error) toast.error("Could not save order");
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from("link_thumbnails")
+        .getPublicUrl(filePath);
+      const publicUrl = data.publicUrl;
+
+      await updateLink(id, { thumbnail_url: publicUrl });
+      return publicUrl;
+    } catch (error) {
+      console.error("Upload Error:", error);
+      toast.error("Image upload failed");
+      throw error;
+    }
   };
 
-  return { links, loading, addLink, deleteLink, reorderLinks };
+  // 6. REORDER LINKS (FIXED)
+  const reorderLinks = async (newLinks) => {
+    // 1. Optimistic Update (Update UI instantly)
+    setLinks(newLinks);
+
+    try {
+      // 2. Simple Batch Update: Only touch 'sort_order'
+      // This avoids RLS errors because we aren't touching sensitive columns like 'user_id'
+      const updates = newLinks.map((link, index) =>
+        supabase.from("links").update({ sort_order: index }).eq("id", link.id)
+      );
+
+      // Execute all updates in parallel
+      await Promise.all(updates);
+    } catch (error) {
+      console.error("Reorder Error:", error);
+      toast.error("Failed to save order");
+    }
+  };
+
+  return {
+    links,
+    loading,
+    addLink,
+    updateLink,
+    deleteLink,
+    uploadThumbnail,
+    reorderLinks,
+  };
 }
