@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
-import { useProfile } from "../../../hooks/useProfile";
-import { useLinks } from "../../editor/hooks/useLinks";
-import { PhonePreview } from "../../editor/components/PhonePreview";
+import { Link } from "react-router-dom";
 import {
   MousePointer2,
   Eye,
@@ -12,9 +10,14 @@ import {
   Link as LinkIcon,
   ShoppingBag,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
+
+// ✅ Verify these import paths match your project structure
+import { useProfile } from "../../../hooks/useProfile";
+import { useLinks } from "../../editor/hooks/useLinks";
+import { PhonePreview } from "../../editor/components/PhonePreview";
 import { Card } from "../../../components/ui/Card";
-import { Link } from "react-router-dom";
 
 export function DashboardHome() {
   const { profile, loading: profileLoading } = useProfile();
@@ -23,12 +26,38 @@ export function DashboardHome() {
   // Infinite Typewriter Hook
   const typedName = useTypewriter(`@${profile?.username || "User"}`, 150);
 
-  if (profileLoading || linksLoading)
+  // 1. LOADING STATE
+  if (profileLoading || linksLoading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 className="animate-spin text-slate-300" />
+        <Loader2 className="animate-spin text-slate-300 w-8 h-8" />
       </div>
     );
+  }
+
+  // 2. SAFETY CHECK: If Profile is missing (prevents "Profile Not Found" crash)
+  if (!profile) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96 text-center px-4">
+        <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
+          <AlertCircle className="text-red-500 w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900 mb-2">
+          Profile Not Found
+        </h2>
+        <p className="text-slate-500 max-w-md mb-6">
+          We couldn't load your profile data. You may need to complete your
+          setup.
+        </p>
+        <Link
+          to="/onboarding"
+          className="bg-slate-900 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-slate-800 transition-colors"
+        >
+          Complete Setup
+        </Link>
+      </div>
+    );
+  }
 
   // Calculate Real Stats
   const totalClicks = links.reduce((sum, link) => sum + (link.clicks || 0), 0);
@@ -36,7 +65,7 @@ export function DashboardHome() {
   const activeLinks = links.filter((l) => l.is_active).length;
 
   // Calculate "Profile Health" Score
-  let healthScore = 20; // Start with 20 for existing
+  let healthScore = 20;
   if (profile?.bio) healthScore += 20;
   if (profile?.avatar_url) healthScore += 20;
   if (activeLinks > 0) healthScore += 20;
@@ -48,12 +77,11 @@ export function DashboardHome() {
       <div className="flex items-end justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex flex-wrap items-center gap-2">
-            Welcome back, {/* GRADIENT + INFINITE TYPEWRITER */}
+            Welcome back,
             <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 bg-clip-text text-transparent font-extrabold tracking-tight min-w-[100px] flex items-center">
               {typedName}
               <span className="text-indigo-600 animate-pulse ml-0.5">|</span>
             </span>
-            {/* WAVING HAND */}
             <span className="animate-bounce inline-block origin-bottom-right">
               👋
             </span>
@@ -73,14 +101,13 @@ export function DashboardHome() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
         {/* LEFT COLUMN: WIDGETS (Spans 2 columns) */}
         <div className="xl:col-span-2 space-y-4">
-          {/* 1. STATS ROW (COLORED CARDS) */}
+          {/* 1. STATS ROW */}
           <div className="grid grid-cols-3 gap-4">
             <StatWidget
               label="Total Views"
               value={totalViews.toLocaleString()}
               icon={<Eye size={16} />}
               iconColor="text-blue-600 bg-white"
-              // BLUE THEME
               className="bg-blue-50/50 border-blue-100 hover:border-blue-200"
             />
             <StatWidget
@@ -88,7 +115,6 @@ export function DashboardHome() {
               value={totalClicks.toLocaleString()}
               icon={<MousePointer2 size={16} />}
               iconColor="text-purple-600 bg-white"
-              // PURPLE THEME
               className="bg-purple-50/50 border-purple-100 hover:border-purple-200"
             />
             <StatWidget
@@ -96,14 +122,13 @@ export function DashboardHome() {
               value={activeLinks}
               icon={<LinkIcon size={16} />}
               iconColor="text-emerald-600 bg-white"
-              // GREEN THEME
               className="bg-emerald-50/50 border-emerald-100 hover:border-emerald-200"
             />
           </div>
 
-          {/* 2. ACTIONS ROW (GRADIENT CARDS) */}
+          {/* 2. ACTIONS ROW */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Edit Appearance - INDIGO GRADIENT */}
+            {/* Customize Look - INDIGO GRADIENT */}
             <Link to="/appearance" className="group">
               <Card className="p-4 h-full bg-gradient-to-br from-indigo-50 via-white to-white border-indigo-100 hover:border-indigo-300 hover:shadow-md transition-all flex items-center gap-4 cursor-pointer">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
@@ -138,7 +163,7 @@ export function DashboardHome() {
             </Link>
           </div>
 
-          {/* 3. PROFILE HEALTH (SLATE GRADIENT) */}
+          {/* 3. PROFILE HEALTH */}
           <Card className="p-4 bg-gradient-to-r from-slate-50 to-white border-slate-200">
             <div className="flex justify-between items-center mb-2">
               <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wide">
@@ -169,7 +194,7 @@ export function DashboardHome() {
                     to="/appearance"
                     className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 bg-white px-2 py-1 rounded-md hover:bg-slate-50 border border-slate-200 shadow-sm"
                   >
-                    <div className="w-1.5 h-1.5 rounded-full bg-red-400"></div>{" "}
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-400"></div>
                     Add Bio
                   </Link>
                 )}
@@ -178,7 +203,7 @@ export function DashboardHome() {
                     to="/appearance"
                     className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 bg-white px-2 py-1 rounded-md hover:bg-slate-50 border border-slate-200 shadow-sm"
                   >
-                    <div className="w-1.5 h-1.5 rounded-full bg-orange-400"></div>{" "}
+                    <div className="w-1.5 h-1.5 rounded-full bg-orange-400"></div>
                     Add Avatar
                   </Link>
                 )}
@@ -187,7 +212,7 @@ export function DashboardHome() {
                     to="/editor"
                     className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 bg-white px-2 py-1 rounded-md hover:bg-slate-50 border border-slate-200 shadow-sm"
                   >
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>{" "}
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
                     Create Link
                   </Link>
                 )}
@@ -198,7 +223,7 @@ export function DashboardHome() {
             )}
           </Card>
 
-          {/* 4. TOP LINKS (WHITE CARD FOR CONTRAST) */}
+          {/* 4. TOP LINKS */}
           <Card className="border-slate-200 overflow-hidden bg-white">
             <div className="p-3 border-b border-slate-100 flex justify-between items-center bg-white">
               <h3 className="font-bold text-slate-900 text-sm">
@@ -258,16 +283,15 @@ export function DashboardHome() {
           </Card>
         </div>
 
-        {/* RIGHT COLUMN: PREVIEW (Sticky) */}
+        {/* RIGHT COLUMN: PREVIEW */}
         <div className="hidden xl:block sticky top-8">
           <div className="bg-white rounded-[2.5rem] p-2 shadow-xl border border-slate-200">
             <div className="scale-[0.85] origin-top h-[600px] pointer-events-none select-none">
-              {/* Pointer events none prevents accidental clicks on preview while on dashboard */}
               <PhonePreview profile={profile} />
             </div>
           </div>
 
-          {/* Mini Share Card - INDIGO TINT */}
+          {/* Mini Share Card */}
           <div className="mt-4 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 shadow-sm flex items-center justify-between group cursor-pointer hover:border-indigo-200 transition-colors">
             <div>
               <h3 className="font-bold text-slate-900 text-sm">
@@ -290,7 +314,8 @@ export function DashboardHome() {
   );
 }
 
-// --- UPDATED STAT WIDGET (Accepts className) ---
+// --- SUB COMPONENTS ---
+
 function StatWidget({ label, value, icon, iconColor, className }) {
   return (
     <Card
@@ -318,7 +343,6 @@ function StatWidget({ label, value, icon, iconColor, className }) {
   );
 }
 
-// --- INFINITE TYPEWRITER HOOK ---
 function useTypewriter(text, speed = 150) {
   const [displayText, setDisplayText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -328,27 +352,23 @@ function useTypewriter(text, speed = 150) {
     const timeout = setTimeout(
       () => {
         if (!isDeleting) {
-          // TYPING PHASE
           if (index < text.length) {
             setDisplayText((prev) => prev + text.charAt(index));
             setIndex(index + 1);
           } else {
-            // Finished typing, pause then switch to delete
             setTimeout(() => setIsDeleting(true), 2000);
           }
         } else {
-          // DELETING PHASE
           if (index > 0) {
             setDisplayText((prev) => prev.slice(0, -1));
             setIndex(index - 1);
           } else {
-            // Finished deleting, restart
             setIsDeleting(false);
           }
         }
       },
       isDeleting ? 50 : speed
-    ); // Delete faster than typing
+    );
 
     return () => clearTimeout(timeout);
   }, [text, index, isDeleting, speed]);

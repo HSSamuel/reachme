@@ -4,7 +4,8 @@ import { Download, QrCode } from "lucide-react";
 import { Card } from "../../../components/ui/Card";
 import toast from "react-hot-toast";
 
-export function QRCodeCard({ username }) {
+// ✅ 1. Accept 'avatarUrl' as a prop
+export function QRCodeCard({ username, avatarUrl }) {
   const qrRef = useRef();
 
   // Logic to generate the full URL
@@ -12,6 +13,8 @@ export function QRCodeCard({ username }) {
 
   const downloadQR = () => {
     const canvas = qrRef.current.querySelector("canvas");
+
+    // Because we used imageSettings, the avatar is baked into this data URL!
     const image = canvas.toDataURL("image/png");
 
     // Create a fake link to trigger download
@@ -41,8 +44,21 @@ export function QRCodeCard({ username }) {
           size={160}
           bgColor={"#ffffff"}
           fgColor={"#0f172a"}
-          level={"H"} // High error correction
+          level={"H"} // ✅ 'H' (High) is required when adding images to allow error correction
           includeMargin={true}
+          // ✅ This embeds the image into the QR code
+          imageSettings={
+            avatarUrl
+              ? {
+                  src: avatarUrl,
+                  x: undefined, // Centers automatically if undefined
+                  y: undefined,
+                  height: 35, // Size of the avatar
+                  width: 35,
+                  excavate: true, // "Digs" out the dots behind the image for clarity
+                }
+              : undefined
+          }
         />
       </div>
 

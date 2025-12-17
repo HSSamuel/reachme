@@ -37,6 +37,13 @@ export function PhonePreview({ profile }) {
       }
     : { backgroundColor: profile.background_color || "#f8fafc" };
 
+  // ✅ 1. CALCULATE CONTRAST
+  // If we have an image, we stick to dark text (because of the glass box).
+  // If we have a flat color, we check if it's dark or light.
+  const isDarkTheme =
+    !profile.background_url &&
+    getContrastYIQ(profile.background_color || "#f8fafc") === "white";
+
   const getSocialLink = (platform, value) => {
     if (!value) return null;
     if (platform === "phone") return `tel:${value}`;
@@ -76,17 +83,26 @@ export function PhonePreview({ profile }) {
 
             {/* Name & Bio Container */}
             <div
-              className={`px-4 py-2 rounded-2xl ${
+              className={`px-4 py-2 rounded-2xl transition-colors duration-300 ${
                 profile.background_url
                   ? "bg-white/80 backdrop-blur-md shadow-sm border border-white/40"
                   : ""
               }`}
             >
-              <h2 className="font-bold text-slate-900 text-sm leading-tight">
+              {/* ✅ 2. APPLY DYNAMIC TEXT COLORS */}
+              <h2
+                className={`font-bold text-sm leading-tight transition-colors duration-300 ${
+                  isDarkTheme ? "text-white" : "text-slate-900"
+                }`}
+              >
                 @{profile.username}
               </h2>
               {profile.bio && (
-                <p className="text-[10px] text-slate-600 mt-1 leading-relaxed max-w-[200px] mx-auto">
+                <p
+                  className={`text-[10px] mt-1 leading-relaxed max-w-[200px] mx-auto transition-colors duration-300 ${
+                    isDarkTheme ? "text-slate-300" : "text-slate-600"
+                  }`}
+                >
                   {profile.bio}
                 </p>
               )}
@@ -179,7 +195,7 @@ export function PhonePreview({ profile }) {
           )}
 
           {/* 4. SHOP CAROUSEL */}
-          <ProductGrid />
+          <ProductGrid isDarkTheme={isDarkTheme} />
 
           {/* 5. LINKS LIST */}
           <div className="space-y-3 pb-8">
@@ -202,7 +218,7 @@ export function PhonePreview({ profile }) {
 
 // --- SUB-COMPONENTS ---
 
-function ProductGrid() {
+function ProductGrid({ isDarkTheme }) {
   const { products } = useProducts();
   const activeProducts = products.filter((p) => p.is_active);
 
@@ -210,13 +226,27 @@ function ProductGrid() {
 
   return (
     <div>
+      {/* ✅ 3. ADAPTIVE SHOP DIVIDER */}
       <div className="flex items-center gap-2 mb-2 opacity-60 px-1">
-        <div className="h-px bg-slate-300 flex-1"></div>
-        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+        <div
+          className={`h-px flex-1 transition-colors ${
+            isDarkTheme ? "bg-white/30" : "bg-slate-300"
+          }`}
+        ></div>
+        <span
+          className={`text-[9px] font-bold uppercase tracking-widest transition-colors ${
+            isDarkTheme ? "text-white/70" : "text-slate-500"
+          }`}
+        >
           Shop
         </span>
-        <div className="h-px bg-slate-300 flex-1"></div>
+        <div
+          className={`h-px flex-1 transition-colors ${
+            isDarkTheme ? "bg-white/30" : "bg-slate-300"
+          }`}
+        ></div>
       </div>
+
       <div className="grid grid-cols-2 gap-2">
         {activeProducts.map((product) => (
           <a
@@ -269,4 +299,19 @@ function SocialIcon({ Icon, url, color }) {
       <Icon size={16} fill={color === "#FFFC00" ? "currentColor" : "none"} />
     </a>
   );
+}
+
+// ✅ HELPER: Determines if text should be white or black based on BG color
+function getContrastYIQ(hexcolor) {
+  if (!hexcolor) return "black";
+  // Remove hash if present
+  hexcolor = hexcolor.replace("#", "");
+  // Parse RGB
+  var r = parseInt(hexcolor.substr(0, 2), 16);
+  var g = parseInt(hexcolor.substr(2, 2), 16);
+  var b = parseInt(hexcolor.substr(4, 2), 16);
+  // Calculate YIQ ratio
+  var yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  // If YIQ >= 128, it's light (return black text). Else dark (return white text).
+  return yiq >= 128 ? "black" : "white";
 }

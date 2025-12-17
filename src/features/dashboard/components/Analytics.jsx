@@ -1,4 +1,7 @@
+import { useState, useEffect } from "react";
 import { useLinks } from "../../editor/hooks/useLinks";
+import { useProfile } from "../../../hooks/useProfile"; // ✅ Added Profile Hook
+import { supabase } from "../../../config/supabaseClient"; // ✅ Added Supabase
 import {
   BarChart3,
   MousePointer2,
@@ -8,6 +11,9 @@ import {
   Calendar,
   Download,
   MoreHorizontal,
+  Mail, // ✅ Added Mail Icon
+  Users, // ✅ Added Users Icon
+  Loader2, // ✅ Added Loader
 } from "lucide-react";
 import {
   AreaChart,
@@ -22,9 +28,9 @@ import {
   Pie,
 } from "recharts";
 import { Card } from "../../../components/ui/Card";
-import toast from "react-hot-toast"; // Added Toast
+import toast from "react-hot-toast";
 
-// --- MOCK DATA ---
+// --- MOCK DATA FOR CHARTS ---
 const TRAFFIC_DATA = [
   { name: "Mon", views: 400, clicks: 240 },
   { name: "Tue", views: 300, clicks: 139 },
@@ -51,8 +57,38 @@ const LOCATION_DATA = [
 
 export function Analytics() {
   const { links } = useLinks();
+  const { profile } = useProfile(); // ✅ Get Profile for Subscribers
 
-  // Real Calcs
+  // --- STATE FOR SUBSCRIBERS ---
+  const [subscribers, setSubscribers] = useState([]);
+  const [loadingSubscribers, setLoadingSubscribers] = useState(true);
+
+  // --- 1. FETCH SUBSCRIBERS ---
+  useEffect(() => {
+    if (profile?.id) {
+      fetchSubscribers();
+    }
+  }, [profile?.id]);
+
+  const fetchSubscribers = async () => {
+    try {
+      setLoadingSubscribers(true);
+      const { data, error } = await supabase
+        .from("subscribers")
+        .select("*")
+        .eq("profile_id", profile.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setSubscribers(data || []);
+    } catch (error) {
+      console.error("Error fetching subscribers:", error);
+    } finally {
+      setLoadingSubscribers(false);
+    }
+  };
+
+  // --- LINK ANALYTICS CALCULATIONS ---
   const totalClicks = links.reduce((sum, link) => sum + (link.clicks || 0), 0);
   const totalViews = Math.floor(totalClicks * 1.8);
   const ctr =
@@ -61,11 +97,11 @@ export function Analytics() {
     .sort((a, b) => (b.clicks || 0) - (a.clicks || 0))
     .slice(0, 4);
 
-  // --- NEW HANDLERS ---
+  // --- HANDLERS ---
 
-  const handleExport = () => {
+  // Export LINK Data
+  const handleExportLinks = () => {
     try {
-      // 1. Create CSV Content
       const headers = "Title,URL,Clicks,Active\n";
       const rows = links
         .map(
@@ -78,29 +114,55 @@ export function Analytics() {
 
       const csvContent = "data:text/csv;charset=utf-8," + headers + rows;
       const encodedUri = encodeURI(csvContent);
-
-      // 2. Trigger Download
       const link = document.createElement("a");
       link.setAttribute("href", encodedUri);
       link.setAttribute(
         "download",
-        `reachme_analytics_${new Date().toISOString().split("T")[0]}.csv`
+        `reachme_links_${new Date().toISOString().split("T")[0]}.csv`
       );
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
-      toast.success("Analytics downloaded successfully!");
+      toast.success("Link Analytics downloaded!");
     } catch (error) {
       toast.error("Failed to export data");
     }
   };
 
-  const handleViewReport = () => {
-    toast.success("Full detailed report sent to your email!", {
-      icon: "📧",
-      duration: 4000,
-    });
+  // Export SUBSCRIBER Data
+  const handleExportSubscribers = () => {
+    try {
+      if (subscribers.length === 0) {
+        toast.error("No subscribers to export");
+        return;
+      }
+      const headers = "Email,Date Joined,Subscriber ID\n";
+      const rows = subscribers
+        .map(
+          (s) =>
+            `"${s.email}","${new Date(s.created_at).toLocaleDateString()}","${
+              s.id
+            }"`
+        )
+        .join("\n");
+
+      const csvContent = "data:text/csv;charset=utf-8," + headers + rows;
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute(
+        "download",
+        `reachme_subscribers_${new Date().toISOString().split("T")[0]}.csv`
+      );
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast.success("Subscriber list downloaded!");
+    } catch (error) {
+      toast.error("Failed to export subscribers");
+    }
   };
 
   const handleFilter = () => {
@@ -123,10 +185,10 @@ export function Analytics() {
             <Calendar size={14} /> 7 Days
           </button>
           <button
-            onClick={handleExport}
+            onClick={handleExportLinks}
             className="flex items-center gap-2 bg-slate-900 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors active:scale-95 shadow-md shadow-indigo-500/20"
           >
-            <Download size={14} /> Export
+            <Download size={14} /> Export Data
           </button>
         </div>
       </div>
@@ -150,13 +212,14 @@ export function Analytics() {
           trend="+5%"
           trendColor="text-green-600 bg-green-50"
         />
+        {/* ✅ NEW: SUBSCRIBER METRIC */}
         <MetricCard
-          title="CTR"
-          value={`${ctr}%`}
-          icon={<BarChart3 size={18} />}
-          color="text-teal-600 bg-teal-50"
-          trend="-2%"
-          trendColor="text-red-600 bg-red-50"
+          title="Subscribers"
+          value={loadingSubscribers ? "..." : subscribers.length}
+          icon={<Users size={18} />}
+          color="text-indigo-600 bg-indigo-50"
+          trend={subscribers.length > 0 ? "Active" : "New"}
+          trendColor="text-indigo-600 bg-indigo-50"
         />
 
         {/* Device Mini Card */}
@@ -296,13 +359,6 @@ export function Analytics() {
               ))
             )}
           </div>
-          {/* VIEW REPORT BUTTON - NOW FUNCTIONAL */}
-          <button
-            onClick={handleViewReport}
-            className="mt-2 w-full py-1.5 text-xs font-bold text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors shrink-0 active:scale-95"
-          >
-            View Report
-          </button>
         </Card>
 
         {/* ROW 3: LOCATIONS & DEVICES */}
@@ -317,7 +373,6 @@ export function Analytics() {
               <div className="absolute inset-0 opacity-80 scale-125">
                 <WorldMap />
               </div>
-              {/* Decorative Pulse */}
               <div className="absolute top-1/3 left-1/3">
                 <span className="relative flex h-3 w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
@@ -370,7 +425,6 @@ export function Analytics() {
             <Smartphone size={16} className="text-slate-400" />
           </div>
           <div className="flex-1 flex items-center gap-6">
-            {/* Pie Chart */}
             <div className="w-32 h-32 relative shrink-0">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -415,6 +469,79 @@ export function Analytics() {
                 </div>
               ))}
             </div>
+          </div>
+        </Card>
+
+        {/* ✅ ROW 4: AUDIENCE GROWTH (Real Subscriber List) */}
+        <Card className="col-span-1 md:col-span-2 lg:col-span-4 p-0 border-slate-200 shadow-sm overflow-hidden bg-white">
+          <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                <Users size={16} />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 text-sm">
+                  Audience Growth
+                </h3>
+                <p className="text-[10px] text-slate-500">
+                  Real-time newsletter subscribers
+                </p>
+              </div>
+            </div>
+            {subscribers.length > 0 && (
+              <button
+                onClick={handleExportSubscribers}
+                className="text-xs font-bold text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+              >
+                <Download size={12} /> CSV
+              </button>
+            )}
+          </div>
+
+          <div className="max-h-[300px] overflow-y-auto">
+            {loadingSubscribers ? (
+              <div className="p-8 flex justify-center">
+                <Loader2 className="animate-spin text-slate-300" />
+              </div>
+            ) : subscribers.length === 0 ? (
+              <div className="p-12 text-center">
+                <Mail className="text-slate-300 w-12 h-12 mx-auto mb-3" />
+                <h3 className="text-sm font-bold text-slate-900">
+                  No subscribers yet
+                </h3>
+                <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
+                  Add the newsletter block to your profile to start collecting
+                  emails.
+                </p>
+              </div>
+            ) : (
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-500 font-bold uppercase sticky top-0">
+                  <tr>
+                    <th className="px-6 py-3">Email Address</th>
+                    <th className="px-6 py-3 text-right">Date Joined</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {subscribers.map((sub) => (
+                    <tr
+                      key={sub.id}
+                      className="hover:bg-slate-50 transition-colors"
+                    >
+                      <td className="px-6 py-3 font-medium text-slate-900 flex items-center gap-3">
+                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold text-[10px]">
+                          {sub.email.charAt(0).toUpperCase()}
+                        </div>
+                        {sub.email}
+                      </td>
+                      <td className="px-6 py-3 text-right text-slate-500">
+                        {new Date(sub.created_at).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </Card>
       </div>

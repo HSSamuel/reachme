@@ -91,13 +91,14 @@ export function DashboardLayout() {
     }
   };
 
+  // ✅ FIXED: Paths are now root-level to match App.jsx
   const navItems = [
     { icon: LayoutDashboard, label: "Overview", path: "/dashboard" },
-    { icon: LinkIcon, label: "Links", path: "/dashboard/editor" },
-    { icon: Palette, label: "Appearance", path: "/dashboard/appearance" },
-    { icon: BarChart3, label: "Analytics", path: "/dashboard/analytics" },
-    { icon: ShoppingBag, label: "Shop", path: "/dashboard/shop" },
-    { icon: Settings, label: "Settings", path: "/dashboard/settings" },
+    { icon: LinkIcon, label: "Links", path: "/editor" }, // Removed /dashboard
+    { icon: Palette, label: "Appearance", path: "/appearance" }, // Removed /dashboard
+    { icon: BarChart3, label: "Analytics", path: "/analytics" }, // Removed /dashboard
+    { icon: ShoppingBag, label: "Shop", path: "/shop" }, // Removed /dashboard
+    { icon: Settings, label: "Settings", path: "/settings" }, // Removed /dashboard
   ];
 
   return (
@@ -153,6 +154,7 @@ export function DashboardLayout() {
                           key={item.path}
                           to={item.path}
                           onClick={() => setNavOpen(false)}
+                          // Only use 'end' matching for the exact dashboard home path
                           end={item.path === "/dashboard"}
                           className={({ isActive }) => `
                               flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors
@@ -211,7 +213,7 @@ export function DashboardLayout() {
                   <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 animate-fade-in z-50 origin-top-right">
                     {/* CLICKABLE PROFILE HEADER */}
                     <Link
-                      to="/dashboard/settings"
+                      to="/settings" // ✅ FIXED Path
                       onClick={() => setProfileOpen(false)}
                       className="block px-4 py-3 border-b border-slate-50 hover:bg-slate-50 transition-colors group"
                     >
