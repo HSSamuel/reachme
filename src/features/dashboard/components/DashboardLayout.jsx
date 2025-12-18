@@ -1,6 +1,7 @@
 import { Outlet, NavLink, useNavigate, Link } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
 import { useProfile } from "../../../hooks/useProfile";
+import { supabase } from "../../../config/supabaseClient"; // ✅ Added to check real user status
 import { QRCodeCanvas } from "qrcode.react";
 import {
   LayoutDashboard,
@@ -25,8 +26,8 @@ import { useState, useRef, useEffect } from "react";
 import toast from "react-hot-toast";
 
 export function DashboardLayout() {
-  const { signOut } = useAuthStore();
-  const { profile } = useProfile();
+  const { signOut, user } = useAuthStore();
+  const { profile, loading: profileLoading } = useProfile(); // ✅ Destructured loading
   const navigate = useNavigate();
 
   // State
@@ -41,9 +42,34 @@ export function DashboardLayout() {
   const profileRef = useRef(null);
   const navRef = useRef(null);
   const mobileMenuRef = useRef(null);
-  const qrCodeRef = useRef(null); // For the visible QR code
-  // ✅ 1. NEW REF for high-quality download
+  const qrCodeRef = useRef(null);
   const downloadQrRef = useRef(null);
+
+  // ✅ ZOMBIE KILLER: Check if user actually exists on mount
+  useEffect(() => {
+    const verifyUserExists = async () => {
+      // 1. Check Supabase directly to see if user exists in DB
+      const { data, error } = await supabase.auth.getUser();
+
+      // 2. If error (User deleted) OR no user data found
+      if (error || !data?.user) {
+        console.warn("User session invalid or user deleted by admin.");
+
+        // 3. Show Toast Notification
+        toast.error("Your session has expired or account was removed.", {
+          id: "session-expired", // Prevents duplicates
+          icon: "🔒",
+          duration: 5000,
+        });
+
+        // 4. Force Sign Out and Redirect
+        await signOut();
+        navigate("/login", { replace: true });
+      }
+    };
+
+    verifyUserExists();
+  }, [signOut, navigate]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -87,9 +113,6 @@ export function DashboardLayout() {
           const dataURL = canvas.toDataURL("image/png");
           setQrAvatar(dataURL);
         } catch (error) {
-          console.warn(
-            "Could not convert avatar for QR (CORS restriction). QR will render without logo."
-          );
           setQrAvatar(null);
         }
       };
@@ -108,20 +131,16 @@ export function DashboardLayout() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // ✅ 2. UPDATED HANDLER: Uses the hidden high-res canvas
   const handleDownloadQR = () => {
-    if (!downloadQrRef.current) return; // Check the download ref instead
+    if (!downloadQrRef.current) return;
     try {
-      // Find the canvas inside our hidden high-res ref
       const canvas = downloadQrRef.current.querySelector("canvas");
       if (!canvas) throw new Error("QR Canvas not found");
 
       const image = canvas.toDataURL("image/png");
-
       const link = document.createElement("a");
       link.href = image;
-      // Added 'high-res' to filename
-      link.download = `reachme-qr-${profile?.username}-high-res.png`;
+      link.download = `reachme-qr-${profile?.username || "code"}-high-res.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -142,7 +161,6 @@ export function DashboardLayout() {
     { icon: Settings, label: "Settings", path: "/settings" },
   ];
 
-  // Shared QR settings for consistency
   const qrSettings = {
     value: `${window.location.origin}/${profile?.username}`,
     bgColor: "#ffffff",
@@ -274,9 +292,14 @@ export function DashboardLayout() {
                       className="block px-4 py-3 border-b border-slate-50 hover:bg-slate-50 transition-colors group"
                     >
                       <p className="text-sm font-bold text-slate-900 truncate">
-                        @{profile?.username || "user"}
+                        {user?.user_metadata?.full_name ||
+                          profile?.username ||
+                          "User"}
                       </p>
-                      <div className="flex items-center gap-1 text-xs text-brand-600 font-medium mt-0.5 group-hover:underline">
+                      <p className="text-xs text-slate-500 truncate mt-0.5 font-normal">
+                        {user?.email}
+                      </p>
+                      <div className="flex items-center gap-1 text-xs text-brand-600 font-medium mt-1.5 group-hover:underline">
                         Manage Account
                       </div>
                     </Link>
@@ -348,7 +371,7 @@ export function DashboardLayout() {
         </div>
       </nav>
 
-      {/* 3. SHARE MODAL */}
+      {/* SHARE MODAL */}
       {shareOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-sm relative transform transition-all scale-100">
@@ -371,16 +394,12 @@ export function DashboardLayout() {
               </p>
             </div>
 
-            {/* QR CODE DISPLAY (Visible, size 240) */}
             <div className="flex justify-center mb-6">
               <div
                 ref={qrCodeRef}
                 className="p-1 bg-white border-2 border-slate-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow"
               >
-                <QRCodeCanvas
-                  {...qrSettings}
-                  size={240} // Visible size
-                />
+                <QRCodeCanvas {...qrSettings} size={240} />
               </div>
             </div>
 
@@ -406,14 +425,17 @@ export function DashboardLayout() {
               </button>
             </div>
 
-            {/* ✅ 3. HIDDEN HIGH-RES QR FOR DOWNLOAD (Size 1024) */}
             <div style={{ display: "none" }} ref={downloadQrRef}>
               <QRCodeCanvas
                 {...qrSettings}
-                size={1024} // High-quality size for download only
+                size={1024}
                 imageSettings={
                   qrSettings.imageSettings
-                    ? { ...qrSettings.imageSettings, height: 180, width: 180 } // Larger logo for high-res
+                    ? {
+                        ...qrSettings.imageSettings,
+                        height: 180,
+                        width: 180,
+                      }
                     : undefined
                 }
               />

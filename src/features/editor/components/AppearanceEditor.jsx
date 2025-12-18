@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react"; // ✅ Added useEffect
 import { useProfile } from "../../../hooks/useProfile";
-import { PhonePreview } from "./PhonePreview";
+import { PhonePreview } from "../../editor/components/PhonePreview";
 import {
   Upload,
   X,
@@ -27,6 +27,7 @@ import {
   Mic2,
   Github,
   Twitch,
+  Check, // ✅ Added Check icon for save confirmation
 } from "lucide-react";
 import { supabase } from "../../../config/supabaseClient";
 import { Switch } from "../../../components/ui/Switch";
@@ -39,11 +40,38 @@ export function AppearanceEditor() {
   const [uploading, setUploading] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  // State to track which section is open
+  // ✅ LOCAL STATE for username to allow typing without auto-saving
+  const [usernameInput, setUsernameInput] = useState("");
+
+  // ✅ SYNC STATE: When profile loads, update the input box
+  useEffect(() => {
+    if (profile?.username) {
+      setUsernameInput(profile.username);
+    }
+  }, [profile?.username]);
+
   const [openSection, setOpenSection] = useState("profile");
 
   const toggleSection = (section) => {
     setOpenSection(openSection === section ? null : section);
+  };
+
+  // ✅ ROBUST SAVE FUNCTION
+  const handleUsernameSave = async () => {
+    // 1. Validation: Don't save if empty or unchanged
+    if (!usernameInput || usernameInput.trim() === "") return;
+    if (usernameInput === profile.username) return;
+
+    try {
+      // 2. Save to DB
+      await updateProfile({ username: usernameInput.trim() });
+      toast.success("Username updated!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to save. Username might be taken.");
+      // Revert to old username on error
+      setUsernameInput(profile.username || "");
+    }
   };
 
   const handleFileUpload = async (e, field) => {
@@ -102,46 +130,39 @@ export function AppearanceEditor() {
             onClick={() => toggleSection("profile")}
             colorClass="bg-blue-50/50 border-blue-100 hover:border-blue-200"
           >
-            <div className="flex items-start gap-5">
-              <div className="relative group shrink-0">
-                <div className="w-20 h-20 rounded-full overflow-hidden bg-white ring-2 ring-white shadow-sm">
-                  {profile.avatar_url ? (
-                    <img
-                      src={profile.avatar_url}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-300">
-                      <Upload size={20} />
-                    </div>
-                  )}
-                </div>
-                <label className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full text-white font-bold text-[10px] uppercase tracking-wide">
-                  Change
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => handleFileUpload(e, "avatar_url")}
-                    disabled={uploading}
-                  />
-                </label>
-              </div>
-              <div className="flex-1 space-y-3 min-w-0">
+            <div className="flex flex-col-reverse sm:flex-row items-center sm:items-start gap-5">
+              {/* Inputs Container */}
+              <div className="flex-1 space-y-3 w-full min-w-0">
+                {/* ✅ UPDATED USERNAME INPUT */}
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-500 uppercase">
                     Username
                   </label>
-                  <input
-                    type="text"
-                    disabled
-                    value={`@${profile.username}`}
-                    className="w-full text-sm font-bold text-slate-500 bg-white/50 border border-slate-200 rounded-lg px-3 py-2 cursor-not-allowed"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={usernameInput}
+                      onChange={(e) =>
+                        setUsernameInput(e.target.value.replace("@", ""))
+                      }
+                      onBlur={handleUsernameSave} // Save on click away
+                      onKeyDown={(e) => e.key === "Enter" && e.target.blur()} // Save on Enter
+                      placeholder="username"
+                      className="w-full text-sm font-bold text-slate-900 bg-white border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:font-normal"
+                    />
+                    {/* Visual Success Indicator if saved */}
+                    {usernameInput && usernameInput === profile.username && (
+                      <div className="absolute right-3 top-2.5 text-green-500">
+                        <Check size={16} />
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Click outside the box to save.
+                  </p>
                 </div>
 
-                {/* ✅ NEW: DISPLAY NAME INPUT */}
+                {/* DISPLAY NAME INPUT */}
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-500 uppercase">
                     Display Name
@@ -168,6 +189,33 @@ export function AppearanceEditor() {
                     onChange={(e) => updateProfile({ bio: e.target.value })}
                   />
                 </div>
+              </div>
+
+              {/* Avatar Upload */}
+              <div className="relative group shrink-0 mb-2 sm:mb-0">
+                <div className="w-24 h-24 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-white ring-4 sm:ring-2 ring-white shadow-md sm:shadow-sm">
+                  {profile.avatar_url ? (
+                    <img
+                      src={profile.avatar_url}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-300 bg-slate-50">
+                      <Upload size={24} />
+                    </div>
+                  )}
+                </div>
+                <label className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full text-white font-bold text-[10px] uppercase tracking-wide">
+                  Change
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleFileUpload(e, "avatar_url")}
+                    disabled={uploading}
+                  />
+                </label>
               </div>
             </div>
           </AccordionItem>
@@ -447,7 +495,7 @@ export function AppearanceEditor() {
                   onChange={(v) => updateProfile({ social_github: v })}
                 />
                 <SocialInput
-                  icon={<Heart size={16} className="text-[#9146FF]" />}
+                  icon={<Twitch size={16} className="text-[#9146FF]" />}
                   placeholder="https://twitch.tv/username"
                   value={profile.social_twitch}
                   onChange={(v) => updateProfile({ social_twitch: v })}
@@ -488,7 +536,7 @@ export function AppearanceEditor() {
                       }
                     />
                     <Input
-                      placeholder="https://venmo.com/u/username, https://paypal.me/yourusername"
+                      placeholder="https://paypal.me/yourusername"
                       className="h-9 text-xs"
                       value={profile.tipping_url || ""}
                       onChange={(e) =>
@@ -534,27 +582,35 @@ export function AppearanceEditor() {
         </div>
       </div>
 
-      {/* MOBILE PREVIEW */}
+      {/* ✅ 1. COMPACT PREVIEW BUTTON (Circular FAB) */}
       <button
         onClick={() => setPreviewOpen(true)}
-        className="xl:hidden fixed bottom-6 right-6 bg-slate-900 text-white px-6 py-3 rounded-full shadow-2xl z-40 font-bold flex items-center gap-2 hover:scale-105 transition-transform"
+        className="xl:hidden fixed bottom-4 right-4 bg-slate-900 text-white p-3.5 rounded-full shadow-2xl z-40 hover:scale-110 hover:bg-slate-800 transition-all active:scale-90"
+        aria-label="Preview"
       >
-        <Eye size={20} /> Preview
+        <Eye size={24} />
       </button>
 
+      {/* ✅ 2. MODAL WITH CLOSE BUTTON AT BOTTOM */}
       {previewOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/95 backdrop-blur-sm p-4 animate-fade-in overflow-hidden">
-          <button
-            onClick={() => setPreviewOpen(false)}
-            className="fixed top-6 right-6 z-[60] bg-white/20 p-3 rounded-full text-white hover:bg-white/30 backdrop-blur-md border border-white/10 shadow-xl transition-all"
-          >
-            <X size={28} />
-          </button>
-          <div className="relative h-full w-full flex items-center justify-center overflow-y-auto py-10">
-            <div onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/95 backdrop-blur-sm p-4 animate-fade-in">
+          {/* Content Area - Pushed to Bottom */}
+          <div className="relative flex-1 w-full flex flex-col items-center justify-end overflow-hidden pb-6">
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="scale-90 origin-bottom"
+            >
               <PhonePreview profile={profile} />
             </div>
           </div>
+
+          {/* Close Button - At Bottom */}
+          <button
+            onClick={() => setPreviewOpen(false)}
+            className="flex items-center gap-2 bg-white/10 text-white px-6 py-3 rounded-full backdrop-blur-md border border-white/20 shadow-xl transition-all hover:bg-white/20 active:scale-95 mb-6 shrink-0"
+          >
+            <X size={20} /> Close Preview
+          </button>
         </div>
       )}
     </div>

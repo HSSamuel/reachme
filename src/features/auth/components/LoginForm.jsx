@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
 import { motion } from "framer-motion";
+import { toast } from "react-hot-toast"; // ✅ Added Toast
 import {
   Mail,
   Lock,
@@ -19,9 +20,8 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  // ✅ FIX: Track EXACTLY what is loading
+  // Loading State
   const [loadingType, setLoadingType] = useState(null);
-
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
@@ -29,32 +29,54 @@ export function LoginForm() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setLoadingType("email"); // ✅ Set specific loading
+    if (!email || !password) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    setLoadingType("email");
     setError("");
 
     try {
+      // ✅ 1. Attempt Login
       await login(email, password);
+
+      toast.success("Welcome back!");
       navigate("/dashboard");
     } catch (err) {
-      setError("Invalid email or password");
+      console.error(err);
+
+      // ✅ 2. Handle Invalid Credentials specifically
+      if (err.message.includes("Invalid login credentials")) {
+        const msg = "Account not found or incorrect password.";
+        setError(msg);
+        toast.error(msg, { icon: "🚫" });
+      } else {
+        // Handle other errors (network, server, etc)
+        const msg = err.message || "Failed to login. Please try again.";
+        setError(msg);
+        toast.error(msg);
+      }
     } finally {
+      // ✅ 3. Always stop loading
       setLoadingType(null);
     }
   };
 
   const handleSocialLogin = async (provider) => {
-    setLoadingType(provider); // ✅ Set specific loading
+    setLoadingType(provider);
     setError("");
     try {
       await signInWithSocial(provider);
     } catch (err) {
       console.error(err);
-      setError(`Could not connect to ${provider}. Please try again.`);
+      const msg = `Could not connect to ${provider}. Please try again.`;
+      setError(msg);
+      toast.error(msg);
       setLoadingType(null);
     }
   };
 
-  // Helper to disable all
   const isGlobalLoading = loadingType !== null;
 
   return (
@@ -104,7 +126,6 @@ export function LoginForm() {
                 disabled={isGlobalLoading}
                 className="flex items-center justify-center gap-2 py-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all font-medium text-sm text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {/* ✅ CHECK loadingType === 'google' */}
                 {loadingType === "google" ? (
                   <Loader2 className="animate-spin w-5 h-5" />
                 ) : (
@@ -139,7 +160,6 @@ export function LoginForm() {
                 disabled={isGlobalLoading}
                 className="flex items-center justify-center gap-2 py-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all font-medium text-sm text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {/* ✅ CHECK loadingType === 'github' */}
                 {loadingType === "github" ? (
                   <Loader2 className="animate-spin w-5 h-5" />
                 ) : (
@@ -219,6 +239,7 @@ export function LoginForm() {
                 </div>
               </div>
 
+              {/* Error Message */}
               {error && (
                 <div className="text-red-500 text-sm font-medium bg-red-50 p-3 rounded-lg border border-red-100 flex items-center gap-2">
                   ⚠️ {error}
@@ -228,9 +249,8 @@ export function LoginForm() {
               <button
                 type="submit"
                 disabled={isGlobalLoading}
-                className="w-full bg-black text-white py-3.5 rounded-xl font-bold text-lg hover:bg-zinc-800 focus:ring-4 focus:ring-slate-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-xl shadow-black/10"
+                className="w-full bg-black text-white py-3.5 rounded-xl font-bold text-lg hover:bg-zinc-800 focus:ring-4 focus:ring-slate-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-xl shadow-black/10 disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                {/* ✅ CHECK loadingType === 'email' */}
                 {loadingType === "email" ? (
                   <Loader2 className="animate-spin" />
                 ) : (
@@ -240,7 +260,6 @@ export function LoginForm() {
               </button>
             </form>
 
-            {/* ✅ 1. THIS IS TOP: The "Create account" Link */}
             <p className="mt-8 text-center text-slate-500">
               Don't have an account?{" "}
               <Link
@@ -252,8 +271,6 @@ export function LoginForm() {
             </p>
           </motion.div>
 
-          {/* ✅ 2. THIS IS BOTTOM: The Copyright Footer */}
-          {/* I removed 'lg:absolute' so this will ALWAYS sit below the text above, never overlapping */}
           <div className="relative mt-6 pb-10 text-center text-xs text-slate-400 lg:bottom-0 lg:left-0 lg:w-full lg:mt-5 lg:pb-0">
             © 2025 ReachMe
           </div>
@@ -261,7 +278,6 @@ export function LoginForm() {
 
         {/* 3. RIGHT SIDE: IMAGE + GLASS CONTENT */}
         <div className="hidden lg:flex w-1/2 h-full relative overflow-hidden items-end justify-end">
-          {/* Background Image & Overlay */}
           <img
             src="/login-bg.png"
             alt="ReachMe creators"
@@ -269,7 +285,6 @@ export function LoginForm() {
           />
           <div className="absolute inset-0 bg-black/40"></div>
 
-          {/* FLOATING GLASS CONTENT CARD */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

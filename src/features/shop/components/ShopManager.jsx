@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useProducts } from "../hooks/useProducts"; // Using our custom hook
+import { useProducts } from "../hooks/useProducts";
 import { PhonePreview } from "../../editor/components/PhonePreview";
 import { useProfile } from "../../../hooks/useProfile";
 import {
@@ -282,28 +282,35 @@ export function ShopManager() {
         </div>
       </div>
 
-      {/* MOBILE PREVIEW BTN */}
+      {/* ✅ 1. COMPACT PREVIEW BUTTON (Circular FAB) */}
       <button
         onClick={() => setPreviewOpen(true)}
-        className="xl:hidden fixed bottom-6 right-6 bg-slate-900 text-white px-6 py-3 rounded-full shadow-2xl z-40 font-bold flex items-center gap-2 hover:scale-105 transition-transform"
+        className="xl:hidden fixed bottom-4 right-4 bg-slate-900 text-white p-3.5 rounded-full shadow-2xl z-40 hover:scale-110 hover:bg-slate-800 transition-all active:scale-90"
+        aria-label="Preview"
       >
-        <Eye size={20} /> Preview
+        <Eye size={24} />
       </button>
 
-      {/* MOBILE PREVIEW MODAL */}
+      {/* ✅ 2. MODAL WITH CLOSE BUTTON AT BOTTOM */}
       {previewOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/95 backdrop-blur-sm p-4 animate-fade-in overflow-hidden">
-          <button
-            onClick={() => setPreviewOpen(false)}
-            className="fixed top-6 right-6 z-[60] bg-white/20 p-3 rounded-full text-white hover:bg-white/30 backdrop-blur-md border border-white/10 shadow-xl transition-all"
-          >
-            <X size={28} />
-          </button>
-          <div className="relative h-full w-full flex items-center justify-center overflow-y-auto py-10">
-            <div onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/95 backdrop-blur-sm p-4 animate-fade-in">
+          {/* Content Area - Pushed to Bottom */}
+          <div className="relative flex-1 w-full flex flex-col items-center justify-end overflow-hidden pb-2">
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="scale-80 origin-bottom"
+            >
               <PhonePreview profile={profile} />
             </div>
           </div>
+
+          {/* Close Button - At Bottom */}
+          <button
+            onClick={() => setPreviewOpen(false)}
+            className="flex items-center gap-0 bg-white/10 text-white px-2 py-1 rounded-full backdrop-blur-md border border-white/20 shadow-xl transition-all hover:bg-white/20 active:scale-95 mb-2 shrink-0"
+          >
+            <X size={20} /> Close Preview
+          </button>
         </div>
       )}
     </div>

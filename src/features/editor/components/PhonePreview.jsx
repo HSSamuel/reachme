@@ -1,5 +1,6 @@
 import { useLinks } from "../../editor/hooks/useLinks";
 import { useProducts } from "../../shop/hooks/useProducts";
+import { useAuthStore } from "../../../store/authStore"; // ✅ Added to get Real Name
 import { PublicLink } from "../../public-profile/components/PublicLink";
 import { SubscribeBlock } from "../../public-profile/components/SubscribeBlock";
 import {
@@ -20,6 +21,7 @@ import {
 } from "lucide-react";
 
 export function PhonePreview({ profile }) {
+  const { user } = useAuthStore(); // ✅ Get User Data
   const { links } = useLinks();
 
   if (!profile)
@@ -28,6 +30,17 @@ export function PhonePreview({ profile }) {
         Loading...
       </div>
     );
+
+  // ✅ SMART NAME LOGIC:
+  // 1. Profile Name (if edited in settings)
+  // 2. Auth Metadata Name (from registration)
+  // 3. Username (fallback)
+  const displayName =
+    profile.full_name ||
+    user?.user_metadata?.full_name ||
+    profile.username ||
+    "Creator";
+  const displayHandle = profile.username ? `@${profile.username}` : "";
 
   const bgStyle = profile.background_url
     ? {
@@ -72,7 +85,8 @@ export function PhonePreview({ profile }) {
               <img
                 src={
                   profile.avatar_url ||
-                  `https://api.dicebear.com/7.x/initials/svg?seed=${profile.username}`
+                  // ✅ FIX: Use 'displayName' for seed so initials match Real Name
+                  `https://api.dicebear.com/7.x/initials/svg?seed=${displayName}`
                 }
                 className="w-full h-full object-cover"
                 alt="Avatar"
@@ -87,13 +101,13 @@ export function PhonePreview({ profile }) {
                   : ""
               }`}
             >
-              {/* ✅ UPDATED: Show Full Name if available, else Username */}
+              {/* ✅ FIX: Show Real Name */}
               <h2
                 className={`font-bold text-sm leading-tight transition-colors duration-300 ${
                   isDarkTheme ? "text-white" : "text-slate-900"
                 }`}
               >
-                {profile.full_name || `@${profile.username}`}
+                {displayName}
               </h2>
 
               {profile.bio && (
@@ -187,6 +201,7 @@ export function PhonePreview({ profile }) {
                   <SubscribeBlock
                     title={profile.newsletter_title}
                     themeColor={profile.theme_color}
+                    profileId={profile.id}
                   />
                 </div>
               )}

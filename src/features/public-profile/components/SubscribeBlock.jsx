@@ -89,7 +89,7 @@ export function SubscribeBlock({ title, themeColor, profileId }) {
               onClick={handleSubscribe}
               disabled={status === "loading"}
               className="h-8 w-20 flex items-center justify-center text-[10px] font-bold text-white px-3 rounded-lg shadow-sm whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed transition-all active:scale-95"
-              style={{ backgroundColor: themeColor || "#000" }}
+              style={{ backgroundColor: "#000000" }}
             >
               {status === "loading" ? (
                 <Loader2 size={12} className="animate-spin" />

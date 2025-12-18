@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
 import { motion } from "framer-motion";
+import { toast } from "react-hot-toast"; // ✅ Using Toast for feedback
 import {
   User,
   Mail,
@@ -21,9 +22,8 @@ export function RegisterForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  // ✅ FIX: Track EXACTLY what is loading ('google', 'github', 'email', or null)
+  // Loading State
   const [loadingType, setLoadingType] = useState(null);
-
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
@@ -31,34 +31,61 @@ export function RegisterForm() {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    setLoadingType("email"); // ✅ Set specific loading type
+
+    // 1. Validate
+    if (!name || !email || !password) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    setLoadingType("email");
     setError("");
 
     try {
-      // await register(name, email, password);
-      setTimeout(() => {
+      // 2. Call Register (Matches store order: email, password, name)
+      const response = await register(email, password, name);
+
+      // 3. Check if we got a session (Email Confirm OFF)
+      if (response.session) {
+        toast.success("Account created! Redirecting...");
         navigate("/dashboard");
-      }, 1500);
+      }
+      // 4. Check if we got a user but NO session (Email Confirm ON)
+      else if (response.user) {
+        toast.success("Account created! Please check your email to verify.", {
+          duration: 6000,
+          icon: "📧",
+        });
+        // ✅ DO NOT redirect here, or it will get stuck loading dashboard
+        setName("");
+        setEmail("");
+        setPassword("");
+      }
     } catch (err) {
-      setError("Something went wrong. Please try again.");
+      console.error(err);
+      // Supabase errors (e.g., "User already registered")
+      const msg = err.message || "Registration failed";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoadingType(null);
     }
   };
 
   const handleSocialLogin = async (provider) => {
-    setLoadingType(provider); // ✅ Set 'google' or 'github'
+    setLoadingType(provider);
     setError("");
     try {
       await signInWithSocial(provider);
     } catch (err) {
       console.error(err);
-      setError(`Could not connect to ${provider}. Please try again.`);
+      const msg = `Could not connect to ${provider}`;
+      setError(msg);
+      toast.error(msg);
       setLoadingType(null);
     }
   };
 
-  // Helper to disable all buttons if ANYTHING is loading
   const isGlobalLoading = loadingType !== null;
 
   return (
@@ -70,9 +97,8 @@ export function RegisterForm() {
       />
 
       <div className="h-screen w-full flex bg-white font-sans text-slate-900 selection:bg-brand-100 selection:text-brand-900 overflow-hidden">
-        {/* LEFT SIDE: Form (Scrollable) */}
+        {/* LEFT SIDE: Form */}
         <div className="w-full lg:w-1/2 h-full overflow-y-auto flex flex-col justify-center px-8 sm:px-12 md:px-24 xl:px-32 relative">
-          {/* Logo */}
           <div className="absolute top-8 left-8 sm:left-12">
             <Link to="/" className="flex items-center gap-2 group">
               <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white font-bold shadow-lg group-hover:scale-105 transition-transform">
@@ -101,14 +127,12 @@ export function RegisterForm() {
 
             {/* Social Login Buttons */}
             <div className="grid grid-cols-2 gap-4 mb-8">
-              {/* GOOGLE BUTTON */}
               <button
                 type="button"
                 onClick={() => handleSocialLogin("google")}
                 disabled={isGlobalLoading}
                 className="flex items-center justify-center gap-2 py-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all font-medium text-sm text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {/* ✅ ONLY spin if loadingType is 'google' */}
                 {loadingType === "google" ? (
                   <Loader2 className="animate-spin w-5 h-5" />
                 ) : (
@@ -136,14 +160,12 @@ export function RegisterForm() {
                 )}
               </button>
 
-              {/* GITHUB BUTTON */}
               <button
                 type="button"
                 onClick={() => handleSocialLogin("github")}
                 disabled={isGlobalLoading}
                 className="flex items-center justify-center gap-2 py-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all font-medium text-sm text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {/* ✅ ONLY spin if loadingType is 'github' */}
                 {loadingType === "github" ? (
                   <Loader2 className="animate-spin w-5 h-5" />
                 ) : (
@@ -166,7 +188,7 @@ export function RegisterForm() {
               </div>
             </div>
 
-            {/* Register Form Inputs */}
+            {/* FORM */}
             <form onSubmit={handleRegister} className="space-y-5">
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700 ml-1">
@@ -180,7 +202,7 @@ export function RegisterForm() {
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all placeholder:text-slate-400 font-medium"
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all font-medium"
                     placeholder="Your Name"
                     required
                   />
@@ -199,7 +221,7 @@ export function RegisterForm() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all placeholder:text-slate-400 font-medium"
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all font-medium"
                     placeholder="name@example.com"
                     required
                   />
@@ -218,7 +240,7 @@ export function RegisterForm() {
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all placeholder:text-slate-400 font-medium"
+                    className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all font-medium"
                     placeholder="Create a strong password"
                     required
                   />
@@ -241,9 +263,8 @@ export function RegisterForm() {
               <button
                 type="submit"
                 disabled={isGlobalLoading}
-                className="w-full bg-black text-white py-3.5 rounded-xl font-bold text-lg hover:bg-zinc-800 focus:ring-4 focus:ring-slate-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-xl shadow-black/10"
+                className="w-full bg-black text-white py-3.5 rounded-xl font-bold text-lg hover:bg-zinc-800 transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-xl shadow-black/10 disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                {/* ✅ ONLY spin if loadingType is 'email' */}
                 {loadingType === "email" ? (
                   <Loader2 className="animate-spin" />
                 ) : (
@@ -286,17 +307,14 @@ export function RegisterForm() {
           >
             <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-4 shadow-2xl relative overflow-hidden flex flex-col items-center text-center">
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-10 pointer-events-none"></div>
-
               <div className="w-6 h-6 bg-white/90 rounded-lg flex items-center justify-center mb-2 shadow-lg relative z-10">
                 <Command size={16} className="text-brand-900" />
               </div>
-
               <blockquote className="text-sm font-medium text-white leading-snug mb-3 relative z-10">
                 "ReachMe gave my brand the professional polish it was missing.
                 It is the perfect launchpad for anyone serious about growing
                 their audience."
               </blockquote>
-
               <div className="flex items-center justify-center gap-3 relative z-10 w-full">
                 <img
                   src="malvins.jpg"

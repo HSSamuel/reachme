@@ -24,7 +24,7 @@ import { motion, AnimatePresence } from "framer-motion";
 // --- DND KIT IMPORTS ---
 import {
   DndContext,
-  closestCorners, // Better collision detection for lists
+  closestCorners,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -60,17 +60,13 @@ export function LinkEditor() {
   const [addingLoading, setAddingLoading] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  // Track currently dragged item
   const [activeId, setActiveId] = useState(null);
-
-  // Memoize IDs to keep the list stable during drag
   const itemIds = useMemo(() => links.map((link) => link.id), [links]);
 
-  // --- SENSORS ---
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // Drag must move 8px to start
+        distance: 8,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -78,7 +74,6 @@ export function LinkEditor() {
     })
   );
 
-  // --- DRAG HANDLERS ---
   const handleDragStart = (event) => {
     setActiveId(event.active.id);
   };
@@ -87,21 +82,15 @@ export function LinkEditor() {
     const { active, over } = event;
     setActiveId(null);
 
-    // Debugging Logs
-    if (!over) {
-      console.log("Dropped outside a valid target");
-      return;
-    }
+    if (!over) return;
 
     if (active.id !== over.id) {
       const oldIndex = links.findIndex((link) => link.id === active.id);
       const newIndex = links.findIndex((link) => link.id === over.id);
 
-      console.log(`Moving item from index ${oldIndex} to ${newIndex}`);
-
       if (oldIndex !== -1 && newIndex !== -1) {
         const newOrder = arrayMove(links, oldIndex, newIndex);
-        reorderLinks(newOrder); // Update State & DB
+        reorderLinks(newOrder);
       }
     }
   };
@@ -126,7 +115,6 @@ export function LinkEditor() {
     }
   };
 
-  // Custom Toast Delete Handler
   const handleDelete = (id) => {
     toast.custom(
       (t) => (
@@ -313,7 +301,6 @@ export function LinkEditor() {
                 </button>
               </div>
             ) : (
-              // --- DND CONTEXT ---
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCorners}
@@ -337,10 +324,8 @@ export function LinkEditor() {
                   ))}
                 </SortableContext>
 
-                {/* --- DRAG OVERLAY (Ghost Item) --- */}
                 <DragOverlay dropAnimation={dropAnimation}>
                   {activeLink ? (
-                    // ADDED: pointer-events-none to ensure we drop ON the list, not on this overlay
                     <div className="opacity-90 scale-105 cursor-grabbing pointer-events-none">
                       <LinkItem
                         link={activeLink}
@@ -361,25 +346,37 @@ export function LinkEditor() {
           <PhonePreview profile={profile} />
         </div>
       </div>
+
+      {/* ✅ 1. COMPACT PREVIEW BUTTON (Circular FAB) */}
       <button
         onClick={() => setPreviewOpen(true)}
-        className="xl:hidden fixed bottom-6 right-6 bg-slate-900 text-white px-6 py-3 rounded-full shadow-2xl z-40 font-bold flex items-center gap-2 hover:scale-105 transition-transform"
+        className="xl:hidden fixed bottom-4 right-4 bg-slate-900 text-white p-3.5 rounded-full shadow-2xl z-40 hover:scale-110 hover:bg-slate-800 transition-all active:scale-90"
+        aria-label="Preview"
       >
-        <Eye size={20} /> Preview
+        <Eye size={24} />
       </button>
+
+      {/* ✅ 2. MODAL WITH CLOSE BUTTON AT BOTTOM */}
       {previewOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/95 backdrop-blur-sm p-4 animate-fade-in overflow-hidden">
-          <button
-            onClick={() => setPreviewOpen(false)}
-            className="fixed top-6 right-6 z-[60] bg-white/20 p-3 rounded-full text-white hover:bg-white/30 backdrop-blur-md border border-white/10 shadow-xl transition-all"
-          >
-            <X size={28} />
-          </button>
-          <div className="relative h-full w-full flex items-center justify-center overflow-y-auto py-10">
-            <div onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/95 backdrop-blur-sm p-1 animate-fade-in">
+          {/* Content Area */}
+          {/* ✅ CHANGED: flex-col, justify-end, pb-6 to push phone down */}
+          <div className="relative flex-1 w-full flex flex-col items-center justify-end overflow-hidden pb-2">
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="scale-80 origin-bottom"
+            >
               <PhonePreview profile={profile} />
             </div>
           </div>
+
+          {/* Close Button */}
+          <button
+            onClick={() => setPreviewOpen(false)}
+            className="flex items-center gap-0 bg-white/10 text-white px-2 py-1 rounded-full backdrop-blur-md border border-white/20 shadow-xl transition-all hover:bg-white/20 active:scale-95 mb-2 shrink-0"
+          >
+            <X size={20} /> Close Preview
+          </button>
         </div>
       )}
     </div>

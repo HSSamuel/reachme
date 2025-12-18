@@ -16,15 +16,21 @@ import {
 // ✅ Verify these import paths match your project structure
 import { useProfile } from "../../../hooks/useProfile";
 import { useLinks } from "../../editor/hooks/useLinks";
+import { useAuthStore } from "../../../store/authStore"; // ✅ Added Auth Store
 import { PhonePreview } from "../../editor/components/PhonePreview";
 import { Card } from "../../../components/ui/Card";
 
 export function DashboardHome() {
+  const { user } = useAuthStore(); // ✅ Get User for real name
   const { profile, loading: profileLoading } = useProfile();
   const { links, loading: linksLoading } = useLinks();
 
-  // Infinite Typewriter Hook
-  const typedName = useTypewriter(`@${profile?.username || "User"}`, 150);
+  // ✅ NAME LOGIC: Metadata Name -> Username -> Fallback
+  const displayName =
+    user?.user_metadata?.full_name || profile?.username || "Creator";
+
+  // Infinite Typewriter Hook (Now uses real name)
+  const typedName = useTypewriter(displayName, 150);
 
   // 1. LOADING STATE
   if (profileLoading || linksLoading) {
@@ -35,7 +41,7 @@ export function DashboardHome() {
     );
   }
 
-  // 2. SAFETY CHECK: If Profile is missing (prevents "Profile Not Found" crash)
+  // 2. SAFETY CHECK: If Profile is missing
   if (!profile) {
     return (
       <div className="flex flex-col items-center justify-center h-96 text-center px-4">
@@ -319,24 +325,23 @@ export function DashboardHome() {
 function StatWidget({ label, value, icon, iconColor, className }) {
   return (
     <Card
-      // ✅ CHANGED: 'justify-between' -> 'justify-center items-center' to centralize content
       className={`p-3 shadow-sm flex flex-col justify-center items-center h-24 relative overflow-hidden group hover:shadow-md transition-all ${className}`}
     >
-      {/* Decorative Corner Icon (Optional: Keeps the "watermark" effect) */}
+      {/* Decorative Corner Icon */}
       <div
         className={`absolute top-0 right-0 p-2 rounded-bl-xl opacity-20 group-hover:opacity-100 transition-opacity ${iconColor}`}
       >
         {icon}
       </div>
 
-      {/* Main Icon - Centered */}
+      {/* Main Icon */}
       <div
         className={`w-8 h-8 rounded-lg flex items-center justify-center mb-1 shadow-sm ${iconColor}`}
       >
         {icon}
       </div>
 
-      {/* Text Content - Centered */}
+      {/* Text Content */}
       <div className="text-center">
         <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
           {label}
@@ -353,6 +358,13 @@ function useTypewriter(text, speed = 150) {
   const [displayText, setDisplayText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [index, setIndex] = useState(0);
+
+  // Reset if text changes (e.g., from "User" to "John Doe")
+  useEffect(() => {
+    setDisplayText("");
+    setIndex(0);
+    setIsDeleting(false);
+  }, [text]);
 
   useEffect(() => {
     const timeout = setTimeout(
