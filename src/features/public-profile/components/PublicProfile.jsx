@@ -9,7 +9,21 @@ import {
   UserPlus,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { Instagram, Twitter, Linkedin, Github, Youtube } from "lucide-react";
+import {
+  Instagram,
+  Twitter,
+  Linkedin,
+  Github,
+  Youtube,
+  Phone,
+  MessageCircle,
+  Facebook,
+  Music2,
+  Ghost,
+  Gamepad2,
+  Mic2,
+  Twitch,
+} from "lucide-react";
 import { SEO } from "../../../components/seo/SEO";
 import { SubscribeBlock } from "./SubscribeBlock";
 
@@ -58,6 +72,14 @@ export function PublicProfile() {
     var b = parseInt(hexcolor.substr(4, 2), 16);
     var yiq = (r * 299 + g * 587 + b * 114) / 1000;
     return yiq >= 128 ? "black" : "white";
+  };
+
+  // ✅ HELPER: Handles 'tel:' for phone and 'https://' for others
+  const getSocialLink = (platform, value) => {
+    if (!value) return null;
+    if (platform === "phone") return `tel:${value}`;
+    if (value.startsWith("http") || value.startsWith("//")) return value;
+    return `https://${value}`;
   };
 
   const bgStyle = profile.background_url
@@ -111,6 +133,10 @@ export function PublicProfile() {
     document.body.removeChild(link);
   };
 
+  // ✅ CALCULATE BUTTON TEXT COLOR
+  const tippingBgColor = profile.theme_color || "#ec4899";
+  const tippingTextColor = getContrastYIQ(tippingBgColor);
+
   return (
     <>
       <SEO
@@ -133,10 +159,13 @@ export function PublicProfile() {
 
         {/* ✅ PLAIN CONTAINER: Changes bg color based on darkness */}
         <div
+          // 👇 UPDATE THIS CLASSNAME BLOCK
           className={`relative z-10 w-full max-w-[600px] min-h-[500px] rounded-[2.5rem] p-6 sm:p-8 transition-all duration-500 shadow-2xl ${
             isDarkBg
-              ? "bg-slate-900/50 backdrop-blur-md border border-white/10"
-              : "bg-white/80 backdrop-blur-md border border-white/40"
+              ? // Dark Theme: Low opacity black (20%) + High Blur
+                "bg-black/20 backdrop-blur-xl border border-white/10"
+              : // Light Theme: Low opacity white (20%) + High Blur
+                "bg-white/20 backdrop-blur-xl border border-white/20"
           }`}
         >
           {/* 1. Header */}
@@ -156,7 +185,6 @@ export function PublicProfile() {
               />
             </div>
 
-            {/* ✅ UPDATED: Plain text that adapts to theme */}
             <h1
               className={`text-3xl md:text-4xl font-extrabold mb-2 tracking-tight transition-colors duration-300 ${
                 isDarkBg ? "text-white" : "text-slate-900"
@@ -176,8 +204,24 @@ export function PublicProfile() {
             )}
           </motion.div>
 
-          {/* SOCIAL ICONS (Colored) */}
+          {/* SOCIAL ICONS */}
           <div className="flex items-center justify-center gap-3 flex-wrap mb-6">
+            {profile.social_phone && (
+              <SocialLink
+                Icon={Phone}
+                url={getSocialLink("phone", profile.social_phone)}
+                isDark={isDarkBg}
+                color="#16a34a"
+              />
+            )}
+            {profile.social_whatsapp && (
+              <SocialLink
+                Icon={MessageCircle}
+                url={profile.social_whatsapp}
+                isDark={isDarkBg}
+                color="#25D366"
+              />
+            )}
             {profile.social_instagram && (
               <SocialLink
                 Icon={Instagram}
@@ -186,12 +230,28 @@ export function PublicProfile() {
                 color="#E1306C"
               />
             )}
+            {profile.social_tiktok && (
+              <SocialLink
+                Icon={Music2}
+                url={profile.social_tiktok}
+                isDark={isDarkBg}
+                color="#000000"
+              />
+            )}
             {profile.social_twitter && (
               <SocialLink
                 Icon={Twitter}
                 url={profile.social_twitter}
                 isDark={isDarkBg}
                 color="#1DA1F2"
+              />
+            )}
+            {profile.social_facebook && (
+              <SocialLink
+                Icon={Facebook}
+                url={profile.social_facebook}
+                isDark={isDarkBg}
+                color="#1877F2"
               />
             )}
             {profile.social_linkedin && (
@@ -215,6 +275,38 @@ export function PublicProfile() {
                 url={profile.social_youtube}
                 isDark={isDarkBg}
                 color="#FF0000"
+              />
+            )}
+            {profile.social_snapchat && (
+              <SocialLink
+                Icon={Ghost}
+                url={profile.social_snapchat}
+                isDark={isDarkBg}
+                color="#FFFC00"
+              />
+            )}
+            {profile.social_discord && (
+              <SocialLink
+                Icon={Gamepad2}
+                url={profile.social_discord}
+                isDark={isDarkBg}
+                color="#5865F2"
+              />
+            )}
+            {profile.social_spotify && (
+              <SocialLink
+                Icon={Mic2}
+                url={profile.social_spotify}
+                isDark={isDarkBg}
+                color="#1DB954"
+              />
+            )}
+            {profile.social_twitch && (
+              <SocialLink
+                Icon={Twitch}
+                url={profile.social_twitch}
+                isDark={isDarkBg}
+                color="#9146FF"
               />
             )}
           </div>
@@ -244,8 +336,11 @@ export function PublicProfile() {
               href={profile.tipping_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full text-white py-3.5 rounded-xl font-bold shadow-lg mb-8 transition-opacity hover:opacity-90"
-              style={{ backgroundColor: profile.theme_color || "#ec4899" }}
+              className={`flex items-center justify-center gap-2 w-full max-w-[95%] mx-auto py-2 rounded-xl font-bold shadow-lg mb-8 transition-opacity hover:opacity-90 border border-black/5`}
+              style={{
+                backgroundColor: tippingBgColor,
+                color: tippingTextColor === "black" ? "#0f172a" : "#ffffff",
+              }}
             >
               <Heart size={18} fill="currentColor" />
               {profile.tipping_title || "Support Me"}
@@ -254,13 +349,18 @@ export function PublicProfile() {
 
           {/* Newsletter */}
           {profile.newsletter_enabled && (
-            <div className="mb-8">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              whileHover={{ scale: 1.02 }} // ✅ Adds the hover scale effect
+              className="mb-8 w-full"
+            >
               <SubscribeBlock
                 profileId={profile.id}
                 title={profile.newsletter_title}
                 themeColor={profile.theme_color}
               />
-            </div>
+            </motion.div>
           )}
 
           {/* Product Grid */}
@@ -321,7 +421,6 @@ export function PublicProfile() {
                       {p.title}
                     </div>
 
-                    {/* ✅ VISIBILITY FIX APPLIED HERE */}
                     <div
                       className={`font-bold text-xs px-2 py-1.5 rounded-lg inline-block shadow-sm ${
                         isDarkBg

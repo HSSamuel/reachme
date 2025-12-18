@@ -366,7 +366,7 @@ export function LandingPage() {
 
                     <div className="z-10 w-24 h-24 bg-white p-1 rounded-full mb-2 shadow-lg mt-4">
                       <img
-                        src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&h=300"
+                        src="sam.jpg"
                         alt="Avatar"
                         className="w-full h-full rounded-full object-cover"
                       />
@@ -374,10 +374,10 @@ export function LandingPage() {
 
                     <div className="z-10 text-center mb-5">
                       <h3 className="font-bold text-slate-900 text-lg">
-                        @AlexCreative
+                        HSSamuel
                       </h3>
                       <p className="text-slate-500 text-xs mt-1">
-                        Digital Creator 🎨 | Tech Enthusiast 💻
+                        Graphic Designer 🎨 | Tech Enthusiast 💻
                       </p>
                     </div>
 
