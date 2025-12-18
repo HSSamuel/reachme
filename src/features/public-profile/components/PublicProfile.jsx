@@ -1,7 +1,13 @@
 import { useParams } from "react-router-dom";
 import { usePublicProfile } from "../hooks/usePublicProfile";
 import { PublicLink } from "./PublicLink";
-import { Loader2, AlertCircle, ShoppingBag, Heart } from "lucide-react";
+import {
+  Loader2,
+  AlertCircle,
+  ShoppingBag,
+  Heart,
+  UserPlus,
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { Instagram, Twitter, Linkedin, Github, Youtube } from "lucide-react";
 import { SEO } from "../../../components/seo/SEO";
@@ -29,7 +35,6 @@ export function PublicProfile() {
     );
   }
 
-  // Typography Helper
   const getFontStack = (font) => {
     switch (font) {
       case "Playfair Display":
@@ -45,7 +50,6 @@ export function PublicProfile() {
     }
   };
 
-  // Contrast Helper
   const getContrastYIQ = (hexcolor) => {
     if (!hexcolor) return "black";
     hexcolor = hexcolor.replace("#", "");
@@ -56,7 +60,6 @@ export function PublicProfile() {
     return yiq >= 128 ? "black" : "white";
   };
 
-  // Background Logic
   const bgStyle = profile.background_url
     ? {
         backgroundImage: `url(${profile.background_url})`,
@@ -66,13 +69,47 @@ export function PublicProfile() {
       }
     : { backgroundColor: profile.theme_color || "#f8fafc" };
 
-  // Theme Logic (Is the background dark?)
   const isDarkTheme =
     !profile.background_url &&
     getContrastYIQ(profile.theme_color || "#f8fafc") === "white";
 
-  // Combined Check: Is the background effectively dark? (Image OR Dark Color)
   const isDarkBg = profile.background_url || isDarkTheme;
+
+  const handleSaveContact = () => {
+    const socialUrls = [
+      profile.social_instagram,
+      profile.social_twitter,
+      profile.social_linkedin,
+      profile.social_youtube,
+      profile.social_github,
+    ]
+      .filter(Boolean)
+      .join("\\n");
+
+    const vCardData = [
+      "BEGIN:VCARD",
+      "VERSION:3.0",
+      `FN:${profile.full_name || profile.username}`,
+      `N:;${profile.full_name || profile.username};;;`,
+      `NICKNAME:${profile.username}`,
+      `NOTE:${profile.bio || "ReachMe Profile"}\\n\\nSocials:\\n${socialUrls}`,
+      `URL:${window.location.href}`,
+      profile.social_phone ? `TEL;TYPE=CELL:${profile.social_phone}` : "",
+      profile.avatar_url ? `PHOTO;VALUE=URI:${profile.avatar_url}` : "",
+      "END:VCARD",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const blob = new Blob([vCardData], { type: "text/vcard;charset=utf-8" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `${profile.username}.vcf`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <>
@@ -90,17 +127,16 @@ export function PublicProfile() {
           fontFamily: getFontStack(profile.font_family),
         }}
       >
-        {/* Dark Overlay for BG Images */}
         {profile.background_url && (
-          <div className="fixed inset-0 bg-black/20 pointer-events-none" />
+          <div className="fixed inset-0 bg-black/40 pointer-events-none" />
         )}
 
-        {/* ✅ THE CONTAINER (Fixed Visibility) */}
+        {/* ✅ PLAIN CONTAINER: Changes bg color based on darkness */}
         <div
-          className={`relative z-10 w-full max-w-[600px] min-h-[500px] rounded-[2.5rem] p-6 sm:p-8 transition-all duration-500 ${
+          className={`relative z-10 w-full max-w-[600px] min-h-[500px] rounded-[2.5rem] p-6 sm:p-8 transition-all duration-500 shadow-2xl ${
             isDarkBg
-              ? "bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl shadow-black/20" // Dark Mode / Image Style
-              : "bg-white/60 backdrop-blur-xl border border-white/50 shadow-xl shadow-slate-200/50" // Light Mode Style (Milky Glass)
+              ? "bg-slate-900/50 backdrop-blur-md border border-white/10"
+              : "bg-white/80 backdrop-blur-md border border-white/40"
           }`}
         >
           {/* 1. Header */}
@@ -120,8 +156,9 @@ export function PublicProfile() {
               />
             </div>
 
+            {/* ✅ UPDATED: Plain text that adapts to theme */}
             <h1
-              className={`text-2xl md:text-3xl font-bold mb-2 transition-colors duration-300 ${
+              className={`text-3xl md:text-4xl font-extrabold mb-2 tracking-tight transition-colors duration-300 ${
                 isDarkBg ? "text-white" : "text-slate-900"
               }`}
             >
@@ -139,13 +176,14 @@ export function PublicProfile() {
             )}
           </motion.div>
 
-          {/* SOCIAL ICONS */}
-          <div className="flex items-center justify-center gap-3 flex-wrap mb-8">
+          {/* SOCIAL ICONS (Colored) */}
+          <div className="flex items-center justify-center gap-3 flex-wrap mb-6">
             {profile.social_instagram && (
               <SocialLink
                 Icon={Instagram}
                 url={profile.social_instagram}
                 isDark={isDarkBg}
+                color="#E1306C"
               />
             )}
             {profile.social_twitter && (
@@ -153,6 +191,7 @@ export function PublicProfile() {
                 Icon={Twitter}
                 url={profile.social_twitter}
                 isDark={isDarkBg}
+                color="#1DA1F2"
               />
             )}
             {profile.social_linkedin && (
@@ -160,6 +199,7 @@ export function PublicProfile() {
                 Icon={Linkedin}
                 url={profile.social_linkedin}
                 isDark={isDarkBg}
+                color="#0077B5"
               />
             )}
             {profile.social_github && (
@@ -174,8 +214,26 @@ export function PublicProfile() {
                 Icon={Youtube}
                 url={profile.social_youtube}
                 isDark={isDarkBg}
+                color="#FF0000"
               />
             )}
+          </div>
+
+          {/* SAVE CONTACT BUTTON */}
+          <div className="flex justify-center mb-8">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleSaveContact}
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-bold text-sm shadow-lg transition-all border ${
+                isDarkBg
+                  ? "bg-white text-slate-900 border-white hover:bg-slate-100"
+                  : "bg-slate-900 text-white border-slate-900 hover:bg-slate-800"
+              }`}
+            >
+              <UserPlus size={16} />
+              Save Contact
+            </motion.button>
           </div>
 
           {/* Tipping Button */}
@@ -186,14 +244,15 @@ export function PublicProfile() {
               href={profile.tipping_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-rose-500/20 mb-8"
+              className="flex items-center justify-center gap-2 w-full text-white py-3.5 rounded-xl font-bold shadow-lg mb-8 transition-opacity hover:opacity-90"
+              style={{ backgroundColor: profile.theme_color || "#ec4899" }}
             >
               <Heart size={18} fill="currentColor" />
               {profile.tipping_title || "Support Me"}
             </motion.a>
           )}
 
-          {/* Newsletter (Inside the Card) */}
+          {/* Newsletter */}
           {profile.newsletter_enabled && (
             <div className="mb-8">
               <SubscribeBlock
@@ -204,7 +263,7 @@ export function PublicProfile() {
             </div>
           )}
 
-          {/* Products Grid */}
+          {/* Product Grid */}
           {products.length > 0 && (
             <div className="w-full mb-8">
               <div className="flex items-center gap-3 mb-4 opacity-80">
@@ -235,7 +294,11 @@ export function PublicProfile() {
                     target="_blank"
                     rel="noopener noreferrer"
                     whileHover={{ y: -4 }}
-                    className="bg-white p-3 rounded-xl shadow-sm border border-slate-100 block group overflow-hidden relative"
+                    className={`p-3 rounded-xl shadow-sm border block group overflow-hidden relative transition-all ${
+                      isDarkBg
+                        ? "bg-slate-800 border-slate-700 hover:bg-slate-700"
+                        : "bg-white border-slate-200 hover:bg-slate-50 hover:shadow-md"
+                    }`}
                   >
                     <div className="aspect-square bg-slate-50 rounded-lg mb-2 overflow-hidden">
                       {p.image_url ? (
@@ -250,10 +313,22 @@ export function PublicProfile() {
                         </div>
                       )}
                     </div>
-                    <div className="font-bold text-slate-900 text-xs truncate">
+                    <div
+                      className={`font-bold text-xs truncate mb-1 ${
+                        isDarkBg ? "text-white" : "text-slate-900"
+                      }`}
+                    >
                       {p.title}
                     </div>
-                    <div className="text-brand-600 font-bold text-[10px]">
+
+                    {/* ✅ VISIBILITY FIX APPLIED HERE */}
+                    <div
+                      className={`font-bold text-xs px-2 py-1.5 rounded-lg inline-block shadow-sm ${
+                        isDarkBg
+                          ? "bg-white text-slate-800"
+                          : "bg-slate-800 text-white"
+                      }`}
+                    >
                       {p.price}
                     </div>
                   </motion.a>
@@ -269,6 +344,8 @@ export function PublicProfile() {
                 key={link.id}
                 link={link}
                 buttonStyle={profile.button_style}
+                themeColor={profile.theme_color}
+                isDark={isDarkBg}
               />
             ))}
           </div>
@@ -292,20 +369,22 @@ export function PublicProfile() {
 }
 
 // Helper for Social Icons
-function SocialLink({ Icon, url, isDark }) {
+function SocialLink({ Icon, url, isDark, color }) {
+  const textColor = color ? color : isDark ? "white" : "#334155";
   return (
     <motion.a
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.9 }}
       href={url}
       target="_blank"
-      className={`p-2.5 rounded-full backdrop-blur-sm transition-colors ${
+      className={`p-2.5 rounded-full backdrop-blur-sm transition-colors shadow-sm ${
         isDark
-          ? "bg-white/10 text-white hover:bg-white/20"
-          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+          ? "bg-slate-800 border border-slate-700 hover:bg-slate-700"
+          : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-200"
       }`}
+      style={{ color: textColor }}
     >
-      <Icon size={20} />
+      <Icon size={20} fill={color === "#FFFC00" ? "currentColor" : "none"} />
     </motion.a>
   );
 }

@@ -319,19 +319,25 @@ export function DashboardHome() {
 function StatWidget({ label, value, icon, iconColor, className }) {
   return (
     <Card
-      className={`p-3 shadow-sm flex flex-col justify-between h-24 relative overflow-hidden group hover:shadow-md transition-all ${className}`}
+      // ✅ CHANGED: 'justify-between' -> 'justify-center items-center' to centralize content
+      className={`p-3 shadow-sm flex flex-col justify-center items-center h-24 relative overflow-hidden group hover:shadow-md transition-all ${className}`}
     >
+      {/* Decorative Corner Icon (Optional: Keeps the "watermark" effect) */}
       <div
         className={`absolute top-0 right-0 p-2 rounded-bl-xl opacity-20 group-hover:opacity-100 transition-opacity ${iconColor}`}
       >
         {icon}
       </div>
+
+      {/* Main Icon - Centered */}
       <div
-        className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 shadow-sm ${iconColor}`}
+        className={`w-8 h-8 rounded-lg flex items-center justify-center mb-1 shadow-sm ${iconColor}`}
       >
         {icon}
       </div>
-      <div>
+
+      {/* Text Content - Centered */}
+      <div className="text-center">
         <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
           {label}
         </p>

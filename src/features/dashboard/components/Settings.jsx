@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom"; // <--- ADDED THIS
+import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../../hooks/useProfile";
 import { useAuthStore } from "../../../store/authStore";
 import {
@@ -15,15 +15,17 @@ import {
   ChevronDown,
   ChevronUp,
   ScanLine,
+  User, // ✅ Added User icon
 } from "lucide-react";
 import { Card } from "../../../components/ui/Card";
 import { Switch } from "../../../components/ui/Switch";
 import { Input } from "../../../components/ui/Input";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import { QRCodeCard } from "./QRCodeCard";
 
 export function Settings() {
-  const navigate = useNavigate(); // <--- INITIALIZE NAVIGATION
+  const navigate = useNavigate();
   const { profile, loading: profileLoading, updateProfile } = useProfile();
   const { user, signOut } = useAuthStore();
 
@@ -40,6 +42,10 @@ export function Settings() {
   const [metaDesc, setMetaDesc] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
+  // ✅ 1. NEW: Full Name State
+  const [fullName, setFullName] = useState("");
+  const [isSavingAccount, setIsSavingAccount] = useState(false);
+
   useEffect(() => {
     if (profile) {
       setMetaTitle(profile.meta_title || `${profile.username}'s Profile`);
@@ -47,15 +53,16 @@ export function Settings() {
         profile.meta_description ||
           `Check out ${profile.username}'s links and content.`
       );
+      // ✅ 2. Sync Full Name
+      setFullName(profile.full_name || "");
     }
   }, [profile]);
 
-  // --- NEW SIGN OUT HANDLER ---
   const handleSignOut = async () => {
     try {
       await signOut();
       toast.success("Signed out successfully");
-      navigate("/login"); // <--- FORCE REDIRECT TO LOGIN
+      navigate("/login");
     } catch (error) {
       console.error("Sign out error:", error);
       toast.error("Error signing out");
@@ -82,6 +89,21 @@ export function Settings() {
       toast.error("Failed to save");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // ✅ 3. NEW: Save Account Details Handler
+  const handleSaveAccount = async () => {
+    try {
+      setIsSavingAccount(true);
+      await updateProfile({
+        full_name: fullName,
+      });
+      toast.success("Account details saved!");
+    } catch (error) {
+      toast.error("Failed to save");
+    } finally {
+      setIsSavingAccount(false);
     }
   };
 
@@ -247,6 +269,38 @@ export function Settings() {
             onClick={() => toggleSection("account")}
           >
             <div className="space-y-4">
+              {/* ✅ 4. NEW: Full Name Input */}
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase">
+                  Full Name
+                </label>
+                <div className="flex gap-2 mt-1">
+                  <div className="relative flex-1">
+                    <User
+                      size={16}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                    <Input
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Your Full Name"
+                      className="h-10 text-sm pl-9"
+                    />
+                  </div>
+                  <button
+                    onClick={handleSaveAccount}
+                    disabled={isSavingAccount}
+                    className="bg-indigo-600 text-white px-4 rounded-lg text-xs font-bold hover:bg-indigo-700 transition-all flex items-center gap-2"
+                  >
+                    {isSavingAccount ? (
+                      <Loader2 className="animate-spin" size={14} />
+                    ) : (
+                      "Save"
+                    )}
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] font-bold text-slate-400 uppercase">
@@ -292,7 +346,6 @@ export function Settings() {
                 </p>
               </div>
             </div>
-            {/* UPDATED: Uses the new handleSignOut function */}
             <button
               onClick={handleSignOut}
               className="bg-white border border-red-200 text-red-600 px-4 py-2 rounded-lg text-xs font-bold hover:bg-red-50 transition-colors"
@@ -304,50 +357,10 @@ export function Settings() {
 
         {/* RIGHT COLUMN: SHARE (Visual) */}
         <div className="space-y-6">
-          <Card className="p-5 border-slate-200 flex flex-col items-center text-center">
-            <div className="w-full bg-indigo-50 rounded-xl p-6 mb-3 flex items-center justify-center border border-indigo-100 relative group overflow-hidden">
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${publicUrl}&bgcolor=eff6ff&color=4338ca`}
-                alt="QR Code"
-                className="w-32 h-32 mix-blend-multiply group-hover:scale-110 transition-transform duration-500"
-              />
-              <div className="absolute inset-0 flex items-center justify-center bg-indigo-900/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                <ScanLine className="text-indigo-600 w-12 h-12 animate-pulse" />
-              </div>
-            </div>
-            <h3 className="font-bold text-slate-900 text-sm mb-1">
-              Share Profile
-            </h3>
-            <p className="text-[11px] text-slate-500 mb-4 max-w-[200px]">
-              Scan to visit instantly.
-            </p>
-
-            <div className="flex gap-2 w-full">
-              <button
-                onClick={handleCopyLink}
-                className="flex-1 flex items-center justify-center gap-2 bg-white border border-slate-200 py-2 rounded-lg text-[10px] font-bold text-slate-700 hover:bg-slate-50 transition-colors"
-              >
-                {copied ? (
-                  <Check size={12} className="text-green-600" />
-                ) : (
-                  <Copy size={12} />
-                )}{" "}
-                Copy
-              </button>
-              <button
-                onClick={handleDownloadQR}
-                disabled={downloading}
-                className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 py-2 rounded-lg text-[10px] font-bold text-white hover:bg-indigo-700 transition-colors"
-              >
-                {downloading ? (
-                  <Loader2 className="animate-spin" size={12} />
-                ) : (
-                  <Download size={12} />
-                )}{" "}
-                Save
-              </button>
-            </div>
-          </Card>
+          <QRCodeCard
+            username={profile?.username}
+            avatarUrl={profile?.avatar_url}
+          />
         </div>
       </div>
     </div>

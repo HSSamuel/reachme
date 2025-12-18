@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useProfile } from "../../../hooks/useProfile";
 import { PhonePreview } from "./PhonePreview";
 import {
@@ -11,25 +11,24 @@ import {
   LayoutDashboard,
   Heart,
   Type,
-  Mail,
   Loader2,
   Eye,
   Palette,
   Layout,
   ChevronDown,
   ChevronUp,
-  Phone, // For Phone Number
-  MessageCircle, // For WhatsApp
-  Music2, // For TikTok
-  Ghost, // For Snapchat
-  Facebook, // For Facebook
-  Youtube, // For YouTube
-  Gamepad2, // For Discord
-  Mic2, // For Spotify
-  Github, // For GitHub
+  Phone,
+  MessageCircle,
+  Music2,
+  Ghost,
+  Facebook,
+  Youtube,
+  Gamepad2,
+  Mic2,
+  Github,
+  Twitch,
 } from "lucide-react";
 import { supabase } from "../../../config/supabaseClient";
-import { Card } from "../../../components/ui/Card";
 import { Switch } from "../../../components/ui/Switch";
 import { Input } from "../../../components/ui/Input";
 import toast from "react-hot-toast";
@@ -40,7 +39,7 @@ export function AppearanceEditor() {
   const [uploading, setUploading] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  // State to track which section is open (default to 'profile')
+  // State to track which section is open
   const [openSection, setOpenSection] = useState("profile");
 
   const toggleSection = (section) => {
@@ -94,17 +93,18 @@ export function AppearanceEditor() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 items-start">
         {/* LEFT COLUMN: ACCORDION EDITOR */}
-        <div className="xl:col-span-2 space-y-3">
-          {/* 1. PROFILE DETAILS */}
+        <div className="xl:col-span-2 space-y-4">
+          {/* 1. PROFILE DETAILS (Blue) */}
           <AccordionItem
             title="Profile"
             icon={<Layout size={18} />}
             isOpen={openSection === "profile"}
             onClick={() => toggleSection("profile")}
+            colorClass="bg-blue-50/50 border-blue-100 hover:border-blue-200"
           >
             <div className="flex items-start gap-5">
               <div className="relative group shrink-0">
-                <div className="w-20 h-20 rounded-full overflow-hidden bg-slate-100 ring-2 ring-slate-100 shadow-sm">
+                <div className="w-20 h-20 rounded-full overflow-hidden bg-white ring-2 ring-white shadow-sm">
                   {profile.avatar_url ? (
                     <img
                       src={profile.avatar_url}
@@ -130,22 +130,38 @@ export function AppearanceEditor() {
               </div>
               <div className="flex-1 space-y-3 min-w-0">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">
                     Username
                   </label>
                   <input
                     type="text"
                     disabled
                     value={`@${profile.username}`}
-                    className="w-full text-sm font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 cursor-not-allowed"
+                    className="w-full text-sm font-bold text-slate-500 bg-white/50 border border-slate-200 rounded-lg px-3 py-2 cursor-not-allowed"
                   />
                 </div>
+
+                {/* ✅ NEW: DISPLAY NAME INPUT */}
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">
+                    Display Name
+                  </label>
+                  <Input
+                    placeholder="e.g. John Doe"
+                    value={profile.full_name || ""}
+                    onChange={(e) =>
+                      updateProfile({ full_name: e.target.value })
+                    }
+                    className="h-10 text-sm bg-white border-slate-200"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">
                     Bio
                   </label>
                   <textarea
-                    placeholder="Bio"
+                    placeholder="Tell your story..."
                     rows="2"
                     className="w-full text-sm text-slate-700 border border-slate-200 rounded-lg px-3 py-2 focus:border-indigo-500 outline-none resize-none bg-white transition-colors"
                     value={profile.bio || ""}
@@ -156,12 +172,13 @@ export function AppearanceEditor() {
             </div>
           </AccordionItem>
 
-          {/* 2. BACKGROUND & THEME */}
+          {/* 2. BACKGROUND & THEME (Purple) */}
           <AccordionItem
             title="Background & Theme"
             icon={<Palette size={18} />}
             isOpen={openSection === "theme"}
             onClick={() => toggleSection("theme")}
+            colorClass="bg-purple-50/50 border-purple-100 hover:border-purple-200"
           >
             <div className="space-y-5">
               <div className="space-y-2">
@@ -193,7 +210,7 @@ export function AppearanceEditor() {
                   />
 
                   {/* Custom Color */}
-                  <div className="relative h-16 rounded-lg border border-slate-200 overflow-hidden group">
+                  <div className="relative h-16 rounded-lg border border-slate-200 overflow-hidden group bg-white">
                     <input
                       type="color"
                       value={profile.background_color || "#ffffff"}
@@ -213,7 +230,7 @@ export function AppearanceEditor() {
                   </div>
 
                   {/* Image Upload */}
-                  <div className="relative h-16 rounded-lg border-2 border-dashed border-slate-200 hover:border-indigo-300 transition-colors flex flex-col items-center justify-center text-slate-400 cursor-pointer bg-slate-50 hover:bg-white group overflow-hidden">
+                  <div className="relative h-16 rounded-lg border-2 border-dashed border-slate-200 hover:border-indigo-300 transition-colors flex flex-col items-center justify-center text-slate-400 cursor-pointer bg-white group overflow-hidden">
                     {profile.background_url ? (
                       <>
                         <img
@@ -268,12 +285,13 @@ export function AppearanceEditor() {
             </div>
           </AccordionItem>
 
-          {/* 3. BUTTON STYLE */}
+          {/* 3. BUTTON STYLE (Pink) */}
           <AccordionItem
             title="Buttons"
             icon={<LayoutDashboard size={18} />}
             isOpen={openSection === "buttons"}
             onClick={() => toggleSection("buttons")}
+            colorClass="bg-pink-50/50 border-pink-100 hover:border-pink-200"
           >
             <div className="grid grid-cols-4 gap-3">
               {[
@@ -297,12 +315,13 @@ export function AppearanceEditor() {
             </div>
           </AccordionItem>
 
-          {/* 4. TYPOGRAPHY */}
+          {/* 4. TYPOGRAPHY (Orange) */}
           <AccordionItem
             title="Typography"
             icon={<Type size={18} />}
             isOpen={openSection === "typography"}
             onClick={() => toggleSection("typography")}
+            colorClass="bg-orange-50/50 border-orange-100 hover:border-orange-200"
           >
             <div className="grid grid-cols-1 gap-2">
               {[
@@ -318,7 +337,7 @@ export function AppearanceEditor() {
                   className={`p-3 text-left border rounded-lg transition-all flex justify-between items-center text-sm ${
                     profile.font_family === font.val
                       ? "border-indigo-500 bg-indigo-50 text-indigo-700 font-bold"
-                      : "border-slate-200 hover:bg-slate-50 text-slate-600"
+                      : "border-slate-200 bg-white hover:bg-slate-50 text-slate-600"
                   }`}
                 >
                   <span style={{ fontFamily: font.val }}>{font.label}</span>
@@ -330,108 +349,106 @@ export function AppearanceEditor() {
             </div>
           </AccordionItem>
 
-          {/* 5. SOCIAL ICONS */}
+          {/* 5. SOCIAL ICONS (Emerald) */}
           <AccordionItem
             title="Social Icons & Contact"
             icon={<Share2 size={18} />}
             isOpen={openSection === "social"}
             onClick={() => toggleSection("social")}
+            colorClass="bg-emerald-50/50 border-emerald-100 hover:border-emerald-200"
           >
             <div className="space-y-6">
-              {/* GROUP 1: DIRECT CONTACT */}
               <div className="space-y-3">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   Contact
                 </label>
                 <SocialInput
                   icon={<Phone size={16} className="text-green-600" />}
-                  placeholder="Phone Number (e.g. +1 234...)"
+                  placeholder="+1 (555) 000-0000"
                   value={profile.social_phone}
                   onChange={(v) => updateProfile({ social_phone: v })}
                 />
                 <SocialInput
                   icon={<MessageCircle size={16} className="text-[#25D366]" />}
-                  placeholder="WhatsApp Link"
+                  placeholder="https://wa.me/15550000000"
                   value={profile.social_whatsapp}
                   onChange={(v) => updateProfile({ social_whatsapp: v })}
                 />
               </div>
 
-              {/* GROUP 2: SOCIALS */}
               <div className="space-y-3">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   Socials
                 </label>
                 <SocialInput
                   icon={<Instagram size={16} className="text-[#E1306C]" />}
-                  placeholder="Instagram URL"
+                  placeholder="https://instagram.com/username"
                   value={profile.social_instagram}
                   onChange={(v) => updateProfile({ social_instagram: v })}
                 />
                 <SocialInput
                   icon={<Music2 size={16} className="text-black" />}
-                  placeholder="TikTok URL"
+                  placeholder="https://tiktok.com/@username"
                   value={profile.social_tiktok}
                   onChange={(v) => updateProfile({ social_tiktok: v })}
                 />
                 <SocialInput
                   icon={<Twitter size={16} className="text-[#1DA1F2]" />}
-                  placeholder="Twitter / X URL"
+                  placeholder="https://twitter.com/username"
                   value={profile.social_twitter}
                   onChange={(v) => updateProfile({ social_twitter: v })}
                 />
                 <SocialInput
                   icon={<Ghost size={16} className="text-[#eab308]" />}
-                  placeholder="Snapchat URL"
+                  placeholder="https://snapchat.com/add/username"
                   value={profile.social_snapchat}
                   onChange={(v) => updateProfile({ social_snapchat: v })}
                 />
                 <SocialInput
                   icon={<Facebook size={16} className="text-[#1877F2]" />}
-                  placeholder="Facebook URL"
+                  placeholder="https://facebook.com/username"
                   value={profile.social_facebook}
                   onChange={(v) => updateProfile({ social_facebook: v })}
                 />
                 <SocialInput
                   icon={<Linkedin size={16} className="text-[#0077B5]" />}
-                  placeholder="LinkedIn URL"
+                  placeholder="https://linkedin.com/in/username"
                   value={profile.social_linkedin}
                   onChange={(v) => updateProfile({ social_linkedin: v })}
                 />
               </div>
 
-              {/* GROUP 3: CONTENT & GAMING */}
               <div className="space-y-3">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   Content
                 </label>
                 <SocialInput
                   icon={<Youtube size={16} className="text-[#FF0000]" />}
-                  placeholder="YouTube URL"
+                  placeholder="https://youtube.com/@channel"
                   value={profile.social_youtube}
                   onChange={(v) => updateProfile({ social_youtube: v })}
                 />
                 <SocialInput
                   icon={<Gamepad2 size={16} className="text-[#5865F2]" />}
-                  placeholder="Discord Server"
+                  placeholder="https://discord.gg/invitecode"
                   value={profile.social_discord}
                   onChange={(v) => updateProfile({ social_discord: v })}
                 />
                 <SocialInput
                   icon={<Mic2 size={16} className="text-[#1DB954]" />}
-                  placeholder="Spotify URL"
+                  placeholder="https://open.spotify.com/artist/..."
                   value={profile.social_spotify}
                   onChange={(v) => updateProfile({ social_spotify: v })}
                 />
                 <SocialInput
                   icon={<Github size={16} className="text-[#181717]" />}
-                  placeholder="GitHub URL"
+                  placeholder="https://github.com/username"
                   value={profile.social_github}
                   onChange={(v) => updateProfile({ social_github: v })}
                 />
                 <SocialInput
                   icon={<Heart size={16} className="text-[#9146FF]" />}
-                  placeholder="Twitch URL"
+                  placeholder="https://twitch.tv/username"
                   value={profile.social_twitch}
                   onChange={(v) => updateProfile({ social_twitch: v })}
                 />
@@ -439,15 +456,15 @@ export function AppearanceEditor() {
             </div>
           </AccordionItem>
 
-          {/* 6. ADVANCED FEATURES (Tipping & Email) */}
+          {/* 6. FEATURES (Yellow) */}
           <AccordionItem
             title="Features"
             icon={<Heart size={18} />}
             isOpen={openSection === "features"}
             onClick={() => toggleSection("features")}
+            colorClass="bg-yellow-50/50 border-yellow-100 hover:border-yellow-200"
           >
             <div className="space-y-6">
-              {/* Tipping */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-bold text-slate-700">
@@ -471,7 +488,7 @@ export function AppearanceEditor() {
                       }
                     />
                     <Input
-                      placeholder="Payment URL"
+                      placeholder="https://venmo.com/u/username, https://paypal.me/yourusername"
                       className="h-9 text-xs"
                       value={profile.tipping_url || ""}
                       onChange={(e) =>
@@ -482,7 +499,6 @@ export function AppearanceEditor() {
                 )}
               </div>
 
-              {/* Email Capture */}
               <div className="space-y-3 pt-4 border-t border-slate-100">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-bold text-slate-700">
@@ -498,7 +514,7 @@ export function AppearanceEditor() {
                 {profile.newsletter_enabled && (
                   <div className="pl-2 border-l-2 border-slate-100">
                     <Input
-                      placeholder="Form Title"
+                      placeholder="Title"
                       className="h-9 text-xs"
                       value={profile.newsletter_title || ""}
                       onChange={(e) =>
@@ -545,21 +561,23 @@ export function AppearanceEditor() {
   );
 }
 
-// --- SUB-COMPONENTS FOR CLEANER CODE ---
+// --- SHARED ACCORDION COMPONENT ---
+function AccordionItem({ title, icon, children, isOpen, onClick, colorClass }) {
+  const bgColor =
+    colorClass || "bg-white border-slate-200 hover:border-slate-300";
 
-function AccordionItem({ title, icon, children, isOpen, onClick }) {
   return (
     <div
-      className={`border transition-all duration-300 rounded-xl bg-white overflow-hidden ${
+      className={`border transition-all duration-300 rounded-xl overflow-hidden ${
         isOpen
-          ? "border-indigo-200 shadow-lg ring-1 ring-indigo-100"
-          : "border-slate-200 hover:border-slate-300"
+          ? "border-indigo-200 shadow-md ring-1 ring-indigo-100 bg-white"
+          : bgColor
       }`}
     >
       <button
         onClick={onClick}
         className={`w-full flex items-center justify-between p-4 text-left transition-colors ${
-          isOpen ? "bg-indigo-50/50" : "bg-white"
+          isOpen ? "bg-indigo-50/50" : ""
         }`}
       >
         <div className="flex items-center gap-3 text-slate-700 font-bold text-sm">
@@ -567,7 +585,7 @@ function AccordionItem({ title, icon, children, isOpen, onClick }) {
             className={`p-1.5 rounded-lg ${
               isOpen
                 ? "bg-indigo-100 text-indigo-600"
-                : "bg-slate-100 text-slate-500"
+                : "bg-white/50 text-slate-600 shadow-sm"
             }`}
           >
             {icon}
@@ -589,7 +607,7 @@ function AccordionItem({ title, icon, children, isOpen, onClick }) {
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
           >
-            <div className="p-4 pt-0 border-t border-indigo-50/50">
+            <div className="p-4 pt-0 border-t border-indigo-50/50 bg-white">
               <div className="pt-4">{children}</div>
             </div>
           </motion.div>
@@ -603,7 +621,7 @@ function ColorPreset({ color, label, onClick, active }) {
   return (
     <button
       onClick={onClick}
-      className={`h-16 rounded-lg border transition-all flex flex-col items-center justify-center gap-1 ${
+      className={`h-16 rounded-lg border transition-all flex flex-col items-center justify-center gap-1 bg-white ${
         active ? "border-indigo-500 ring-2 ring-indigo-200" : "border-slate-200"
       }`}
       style={{ backgroundColor: color }}

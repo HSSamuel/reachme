@@ -1,6 +1,7 @@
 import { Outlet, NavLink, useNavigate, Link } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
 import { useProfile } from "../../../hooks/useProfile";
+import { QRCodeCanvas } from "qrcode.react";
 import {
   LayoutDashboard,
   Link as LinkIcon,
@@ -34,11 +35,15 @@ export function DashboardLayout() {
   const [navOpen, setNavOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [qrAvatar, setQrAvatar] = useState(null);
 
   // Refs
   const profileRef = useRef(null);
   const navRef = useRef(null);
   const mobileMenuRef = useRef(null);
+  const qrCodeRef = useRef(null); // For the visible QR code
+  // ✅ 1. NEW REF for high-quality download
+  const downloadQrRef = useRef(null);
 
   const handleSignOut = async () => {
     await signOut();
@@ -65,6 +70,36 @@ export function DashboardLayout() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Convert Avatar to Base64 for QR Safety
+  useEffect(() => {
+    if (shareOpen && profile?.avatar_url) {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = profile.avatar_url;
+
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        try {
+          const dataURL = canvas.toDataURL("image/png");
+          setQrAvatar(dataURL);
+        } catch (error) {
+          console.warn(
+            "Could not convert avatar for QR (CORS restriction). QR will render without logo."
+          );
+          setQrAvatar(null);
+        }
+      };
+
+      img.onerror = () => {
+        setQrAvatar(null);
+      };
+    }
+  }, [shareOpen, profile?.avatar_url]);
+
   const handleCopyLink = () => {
     const url = `${window.location.origin}/${profile?.username}`;
     navigator.clipboard.writeText(url);
@@ -73,41 +108,66 @@ export function DashboardLayout() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownloadQR = async () => {
+  // ✅ 2. UPDATED HANDLER: Uses the hidden high-res canvas
+  const handleDownloadQR = () => {
+    if (!downloadQrRef.current) return; // Check the download ref instead
     try {
-      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${window.location.origin}/${profile?.username}`;
-      const response = await fetch(qrUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      // Find the canvas inside our hidden high-res ref
+      const canvas = downloadQrRef.current.querySelector("canvas");
+      if (!canvas) throw new Error("QR Canvas not found");
+
+      const image = canvas.toDataURL("image/png");
+
       const link = document.createElement("a");
-      link.href = url;
-      link.download = `${profile?.username}-qr.png`;
+      link.href = image;
+      // Added 'high-res' to filename
+      link.download = `reachme-qr-${profile?.username}-high-res.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      toast.success("QR Code downloaded!");
+
+      toast.success("High-quality QR downloaded!");
     } catch (error) {
-      toast.error("Could not download QR Code");
+      console.error(error);
+      toast.error("Could not download QR Code.");
     }
   };
 
-  // ✅ FIXED: Paths are now root-level to match App.jsx
   const navItems = [
     { icon: LayoutDashboard, label: "Overview", path: "/dashboard" },
-    { icon: LinkIcon, label: "Links", path: "/editor" }, // Removed /dashboard
-    { icon: Palette, label: "Appearance", path: "/appearance" }, // Removed /dashboard
-    { icon: BarChart3, label: "Analytics", path: "/analytics" }, // Removed /dashboard
-    { icon: ShoppingBag, label: "Shop", path: "/shop" }, // Removed /dashboard
-    { icon: Settings, label: "Settings", path: "/settings" }, // Removed /dashboard
+    { icon: LinkIcon, label: "Links", path: "/editor" },
+    { icon: Palette, label: "Appearance", path: "/appearance" },
+    { icon: BarChart3, label: "Analytics", path: "/analytics" },
+    { icon: ShoppingBag, label: "Shop", path: "/shop" },
+    { icon: Settings, label: "Settings", path: "/settings" },
   ];
+
+  // Shared QR settings for consistency
+  const qrSettings = {
+    value: `${window.location.origin}/${profile?.username}`,
+    bgColor: "#ffffff",
+    fgColor: "#0f172a",
+    level: "H",
+    includeMargin: true,
+    imageSettings: qrAvatar
+      ? {
+          src: qrAvatar,
+          x: undefined,
+          y: undefined,
+          height: 45,
+          width: 45,
+          excavate: true,
+        }
+      : undefined,
+  };
 
   return (
     <div className="min-h-screen font-sans text-slate-900 bg-transparent">
-      {/* 1. THE TOPBAR (Dark Glass Theme) */}
+      {/* 1. THE TOPBAR */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/90 backdrop-blur-xl border-b border-white/10 shadow-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            {/* LEFT: BRAND LOGO */}
+            {/* BRAND */}
             <Link
               to="/dashboard"
               className="flex items-center gap-3 flex-shrink-0 group"
@@ -120,9 +180,9 @@ export function DashboardLayout() {
               </span>
             </Link>
 
-            {/* RIGHT: ACTIONS */}
+            {/* ACTIONS */}
             <div className="flex items-center gap-3 md:gap-4">
-              {/* A. MENU DROPDOWN (Desktop Only) */}
+              {/* MENU */}
               <div className="relative hidden lg:block" ref={navRef}>
                 <button
                   onClick={() => setNavOpen(!navOpen)}
@@ -145,7 +205,6 @@ export function DashboardLayout() {
                   />
                 </button>
 
-                {/* Desktop Dropdown Content */}
                 {navOpen && (
                   <div className="absolute top-full right-0 mt-3 w-60 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 animate-fade-in origin-top-right">
                     <div className="grid gap-1">
@@ -154,7 +213,6 @@ export function DashboardLayout() {
                           key={item.path}
                           to={item.path}
                           onClick={() => setNavOpen(false)}
-                          // Only use 'end' matching for the exact dashboard home path
                           end={item.path === "/dashboard"}
                           className={({ isActive }) => `
                               flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors
@@ -174,7 +232,7 @@ export function DashboardLayout() {
                 )}
               </div>
 
-              {/* B. SHARE BUTTON */}
+              {/* SHARE BUTTON */}
               <button
                 onClick={() => setShareOpen(true)}
                 className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-brand-600 text-white rounded-full text-sm font-bold hover:bg-brand-500 transition-all shadow-lg shadow-brand-900/20 active:scale-95 border border-transparent"
@@ -183,7 +241,7 @@ export function DashboardLayout() {
                 <span className="hidden sm:inline">Share</span>
               </button>
 
-              {/* C. PROFILE DROPDOWN (Visible on ALL Screens now) */}
+              {/* PROFILE DROPDOWN */}
               <div className="relative" ref={profileRef}>
                 <button
                   onClick={() => setProfileOpen(!profileOpen)}
@@ -202,7 +260,6 @@ export function DashboardLayout() {
                       </div>
                     )}
                   </div>
-                  {/* Chevron only on desktop to save mobile space */}
                   <ChevronDown
                     size={14}
                     className="text-slate-400 hidden sm:block"
@@ -211,9 +268,8 @@ export function DashboardLayout() {
 
                 {profileOpen && (
                   <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 animate-fade-in z-50 origin-top-right">
-                    {/* CLICKABLE PROFILE HEADER */}
                     <Link
-                      to="/settings" // ✅ FIXED Path
+                      to="/settings"
                       onClick={() => setProfileOpen(false)}
                       className="block px-4 py-3 border-b border-slate-50 hover:bg-slate-50 transition-colors group"
                     >
@@ -238,7 +294,7 @@ export function DashboardLayout() {
                 )}
               </div>
 
-              {/* D. MOBILE MENU TOGGLE (Hamburger - Contains only Links) */}
+              {/* MOBILE MENU TOGGLE */}
               <div className="lg:hidden relative" ref={mobileMenuRef}>
                 <button
                   onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -254,7 +310,6 @@ export function DashboardLayout() {
                   {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
                 </button>
 
-                {/* MOBILE DROPDOWN (Contains Text Links Only) */}
                 {mobileMenuOpen && (
                   <div className="absolute top-full right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 animate-fade-in z-50 origin-top-right">
                     <div className="grid gap-1">
@@ -316,12 +371,15 @@ export function DashboardLayout() {
               </p>
             </div>
 
+            {/* QR CODE DISPLAY (Visible, size 240) */}
             <div className="flex justify-center mb-6">
-              <div className="p-4 bg-white border-2 border-slate-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${window.location.origin}/${profile?.username}&color=4f46e5`}
-                  alt="QR Code"
-                  className="w-48 h-48"
+              <div
+                ref={qrCodeRef}
+                className="p-1 bg-white border-2 border-slate-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow"
+              >
+                <QRCodeCanvas
+                  {...qrSettings}
+                  size={240} // Visible size
                 />
               </div>
             </div>
@@ -344,8 +402,21 @@ export function DashboardLayout() {
                 className="w-full flex items-center justify-center gap-2 py-3 border border-slate-200 rounded-xl text-slate-700 font-bold hover:bg-slate-50 transition-colors"
               >
                 <Download size={18} />
-                Download QR Code
+                Download High-Res QR Code
               </button>
+            </div>
+
+            {/* ✅ 3. HIDDEN HIGH-RES QR FOR DOWNLOAD (Size 1024) */}
+            <div style={{ display: "none" }} ref={downloadQrRef}>
+              <QRCodeCanvas
+                {...qrSettings}
+                size={1024} // High-quality size for download only
+                imageSettings={
+                  qrSettings.imageSettings
+                    ? { ...qrSettings.imageSettings, height: 180, width: 180 } // Larger logo for high-res
+                    : undefined
+                }
+              />
             </div>
           </div>
         </div>

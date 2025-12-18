@@ -37,9 +37,7 @@ export function PhonePreview({ profile }) {
       }
     : { backgroundColor: profile.background_color || "#f8fafc" };
 
-  // ✅ 1. CALCULATE CONTRAST
-  // If we have an image, we stick to dark text (because of the glass box).
-  // If we have a flat color, we check if it's dark or light.
+  // Determine text contrast based on background
   const isDarkTheme =
     !profile.background_url &&
     getContrastYIQ(profile.background_color || "#f8fafc") === "white";
@@ -68,7 +66,7 @@ export function PhonePreview({ profile }) {
         )}
 
         <div className="relative z-10 flex flex-col gap-5">
-          {/* 1. PROFILE HEADER (Compact) */}
+          {/* 1. PROFILE HEADER */}
           <div className="flex flex-col items-center text-center mt-2">
             <div className="w-20 h-20 rounded-full border-[3px] border-white shadow-lg overflow-hidden mb-3 bg-white shrink-0">
               <img
@@ -89,14 +87,15 @@ export function PhonePreview({ profile }) {
                   : ""
               }`}
             >
-              {/* ✅ 2. APPLY DYNAMIC TEXT COLORS */}
+              {/* ✅ UPDATED: Show Full Name if available, else Username */}
               <h2
                 className={`font-bold text-sm leading-tight transition-colors duration-300 ${
                   isDarkTheme ? "text-white" : "text-slate-900"
                 }`}
               >
-                @{profile.username}
+                {profile.full_name || `@${profile.username}`}
               </h2>
+
               {profile.bio && (
                 <p
                   className={`text-[10px] mt-1 leading-relaxed max-w-[200px] mx-auto transition-colors duration-300 ${
@@ -109,7 +108,7 @@ export function PhonePreview({ profile }) {
             </div>
           </div>
 
-          {/* 2. SOCIAL ICONS (Tight Grid) */}
+          {/* 2. SOCIAL ICONS */}
           <div className="flex items-center justify-center gap-2.5 flex-wrap px-2">
             <SocialIcon
               Icon={Phone}
@@ -226,7 +225,6 @@ function ProductGrid({ isDarkTheme }) {
 
   return (
     <div>
-      {/* ✅ 3. ADAPTIVE SHOP DIVIDER */}
       <div className="flex items-center gap-2 mb-2 opacity-60 px-1">
         <div
           className={`h-px flex-1 transition-colors ${
@@ -301,17 +299,13 @@ function SocialIcon({ Icon, url, color }) {
   );
 }
 
-// ✅ HELPER: Determines if text should be white or black based on BG color
+// Helper: Determine text contrast
 function getContrastYIQ(hexcolor) {
   if (!hexcolor) return "black";
-  // Remove hash if present
   hexcolor = hexcolor.replace("#", "");
-  // Parse RGB
   var r = parseInt(hexcolor.substr(0, 2), 16);
   var g = parseInt(hexcolor.substr(2, 2), 16);
   var b = parseInt(hexcolor.substr(4, 2), 16);
-  // Calculate YIQ ratio
   var yiq = (r * 299 + g * 587 + b * 114) / 1000;
-  // If YIQ >= 128, it's light (return black text). Else dark (return white text).
   return yiq >= 128 ? "black" : "white";
 }

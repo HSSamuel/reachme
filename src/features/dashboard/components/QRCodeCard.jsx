@@ -1,10 +1,9 @@
 import { useRef } from "react";
-import { QRCodeCanvas } from "qrcode.react";
+import { QRCodeCanvas } from "qrcode.react"; //
 import { Download, QrCode } from "lucide-react";
-import { Card } from "../../../components/ui/Card";
+import { Card } from "../../../components/ui/Card"; //
 import toast from "react-hot-toast";
 
-// ✅ 1. Accept 'avatarUrl' as a prop
 export function QRCodeCard({ username, avatarUrl }) {
   const qrRef = useRef();
 
@@ -12,12 +11,14 @@ export function QRCodeCard({ username, avatarUrl }) {
   const profileUrl = `${window.location.origin}/${username}`;
 
   const downloadQR = () => {
+    // 1. Get the canvas element
     const canvas = qrRef.current.querySelector("canvas");
+    if (!canvas) return;
 
-    // Because we used imageSettings, the avatar is baked into this data URL!
+    // 2. Convert to data URL (The avatar is already baked in by QRCodeCanvas!)
     const image = canvas.toDataURL("image/png");
 
-    // Create a fake link to trigger download
+    // 3. Create a fake link to trigger download
     const anchor = document.createElement("a");
     anchor.href = image;
     anchor.download = `reachme-qr-${username}.png`;
@@ -37,25 +38,24 @@ export function QRCodeCard({ username, avatarUrl }) {
 
       <div
         ref={qrRef}
-        className="p-4 bg-white rounded-xl border-2 border-slate-100 shadow-sm"
+        className="p-1 bg-white rounded-xl border-2 border-slate-100 shadow-sm"
       >
         <QRCodeCanvas
           value={profileUrl}
-          size={160}
+          size={240}
           bgColor={"#ffffff"}
-          fgColor={"#0f172a"}
-          level={"H"} // ✅ 'H' (High) is required when adding images to allow error correction
+          fgColor={"#1d099dff"}
+          level={"H"} // ✅ High error correction required for images
           includeMargin={true}
-          // ✅ This embeds the image into the QR code
           imageSettings={
             avatarUrl
               ? {
                   src: avatarUrl,
-                  x: undefined, // Centers automatically if undefined
+                  x: undefined, // Centers automatically
                   y: undefined,
-                  height: 35, // Size of the avatar
-                  width: 35,
-                  excavate: true, // "Digs" out the dots behind the image for clarity
+                  height: 40,
+                  width: 40,
+                  excavate: true, // "Digs" a hole for the image so dots don't overlap
                 }
               : undefined
           }
@@ -64,12 +64,14 @@ export function QRCodeCard({ username, avatarUrl }) {
 
       <p className="text-xs text-slate-500 max-w-[200px]">
         Scan to visit: <br />
-        <span className="font-mono font-bold text-brand-600">{profileUrl}</span>
+        <span className="font-mono font-bold text-brand-600 truncate block">
+          {profileUrl}
+        </span>
       </p>
 
       <button
         onClick={downloadQR}
-        className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800 transition-colors w-full justify-center"
+        className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-slate-800 transition-colors w-full justify-center shadow-lg shadow-slate-900/20"
       >
         <Download size={16} /> Download PNG
       </button>
