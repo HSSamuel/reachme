@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion"; // ✅ Import Framer Motion
 import {
   MousePointer2,
   Eye,
@@ -11,28 +12,28 @@ import {
   ShoppingBag,
   Loader2,
   AlertCircle,
+  CheckCircle2, // ✅ Better Icons
+  Circle,
+  Sparkles,
+  ArrowRight,
 } from "lucide-react";
 
-// ✅ Verify these import paths match your project structure
 import { useProfile } from "../../../hooks/useProfile";
 import { useLinks } from "../../editor/hooks/useLinks";
-import { useAuthStore } from "../../../store/authStore"; // ✅ Added Auth Store
+import { useAuthStore } from "../../../store/authStore";
 import { PhonePreview } from "../../editor/components/PhonePreview";
 import { Card } from "../../../components/ui/Card";
 
 export function DashboardHome() {
-  const { user } = useAuthStore(); // ✅ Get User for real name
+  const { user } = useAuthStore();
   const { profile, loading: profileLoading } = useProfile();
   const { links, loading: linksLoading } = useLinks();
 
-  // ✅ NAME LOGIC: Metadata Name -> Username -> Fallback
   const displayName =
     user?.user_metadata?.full_name || profile?.username || "Creator";
 
-  // Infinite Typewriter Hook (Now uses real name)
   const typedName = useTypewriter(displayName, 150);
 
-  // 1. LOADING STATE
   if (profileLoading || linksLoading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -41,7 +42,6 @@ export function DashboardHome() {
     );
   }
 
-  // 2. SAFETY CHECK: If Profile is missing
   if (!profile) {
     return (
       <div className="flex flex-col items-center justify-center h-96 text-center px-4">
@@ -67,7 +67,7 @@ export function DashboardHome() {
 
   // Calculate Real Stats
   const totalClicks = links.reduce((sum, link) => sum + (link.clicks || 0), 0);
-  const totalViews = Math.floor(totalClicks * 1.5); // Estimate based on clicks
+  const totalViews = Math.floor(totalClicks * 1.5);
   const activeLinks = links.filter((l) => l.is_active).length;
 
   // Calculate "Profile Health" Score
@@ -76,6 +76,27 @@ export function DashboardHome() {
   if (profile?.avatar_url) healthScore += 20;
   if (activeLinks > 0) healthScore += 20;
   if (profile?.social_instagram || profile?.social_twitter) healthScore += 20;
+
+  // ✅ ONBOARDING LOGIC
+  const checklistItems = [
+    {
+      id: 1,
+      label: "Add your first link",
+      done: links.length > 0,
+      link: "/editor",
+    },
+    {
+      id: 2,
+      label: "Upload profile picture",
+      done: !!profile.avatar_url,
+      link: "/appearance",
+    },
+    { id: 3, label: "Set your Bio", done: !!profile.bio, link: "/appearance" },
+  ];
+
+  const progress = Math.round(
+    (checklistItems.filter((i) => i.done).length / checklistItems.length) * 100
+  );
 
   return (
     <div className="max-w-7xl mx-auto pb-24 px-4">
@@ -105,8 +126,104 @@ export function DashboardHome() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
-        {/* LEFT COLUMN: WIDGETS (Spans 2 columns) */}
-        <div className="xl:col-span-2 space-y-4">
+        {/* LEFT COLUMN: WIDGETS */}
+        <div className="xl:col-span-2 space-y-6">
+          {/* ✅ PREMIUM ONBOARDING WIDGET */}
+          {progress < 100 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 to-purple-800 p-6 text-white shadow-2xl shadow-indigo-500/30"
+            >
+              {/* Background Glows */}
+              <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white/20 rounded-full blur-3xl pointer-events-none animate-pulse"></div>
+              <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-black/20 rounded-full blur-3xl pointer-events-none"></div>
+
+              <div className="relative z-10">
+                {/* Header */}
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <h2 className="text-2xl font-bold flex items-center gap-2">
+                      <Sparkles
+                        className="text-yellow-300 fill-yellow-300 animate-pulse"
+                        size={24}
+                      />
+                      Setup Guide
+                    </h2>
+                    <p className="text-indigo-100 text-sm mt-1">
+                      Complete these steps to launch your profile.
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-3xl font-black tracking-tight">
+                      {progress}%
+                    </span>
+                    <span className="text-[10px] text-indigo-200 block uppercase tracking-wider font-bold">
+                      Complete
+                    </span>
+                  </div>
+                </div>
+
+                {/* Animated Progress Bar */}
+                <div className="h-3 w-full bg-black/20 rounded-full overflow-hidden mb-6 backdrop-blur-sm border border-white/5">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress}%` }}
+                    transition={{ duration: 1.5, ease: "easeOut" }}
+                    className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full shadow-[0_0_10px_rgba(250,204,21,0.5)]"
+                  />
+                </div>
+
+                {/* Steps Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {checklistItems.map((item) => (
+                    <Link key={item.id} to={item.link}>
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className={`flex items-center gap-3 p-3 rounded-xl border transition-all h-full ${
+                          item.done
+                            ? "bg-indigo-900/40 border-indigo-500/30 text-indigo-200 cursor-default"
+                            : "bg-white/10 border-white/20 hover:bg-white/20 text-white cursor-pointer shadow-lg backdrop-blur-md"
+                        }`}
+                      >
+                        {/* Icon State */}
+                        <div
+                          className={`p-1.5 rounded-full shrink-0 ${
+                            item.done
+                              ? "bg-green-500/20 text-green-400"
+                              : "bg-white/20 text-white"
+                          }`}
+                        >
+                          {item.done ? (
+                            <CheckCircle2 size={18} />
+                          ) : (
+                            <Circle size={18} />
+                          )}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <p
+                            className={`text-xs font-bold truncate ${
+                              item.done ? "line-through opacity-60" : ""
+                            }`}
+                          >
+                            {item.label}
+                          </p>
+                        </div>
+
+                        {!item.done && (
+                          <ArrowRight size={14} className="opacity-60" />
+                        )}
+                      </motion.div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {/* 1. STATS ROW */}
           <div className="grid grid-cols-3 gap-4">
             <StatWidget
@@ -134,7 +251,6 @@ export function DashboardHome() {
 
           {/* 2. ACTIONS ROW */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Customize Look - INDIGO GRADIENT */}
             <Link to="/appearance" className="group">
               <Card className="p-4 h-full bg-gradient-to-br from-indigo-50 via-white to-white border-indigo-100 hover:border-indigo-300 hover:shadow-md transition-all flex items-center gap-4 cursor-pointer">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
@@ -151,7 +267,6 @@ export function DashboardHome() {
               </Card>
             </Link>
 
-            {/* Manage Shop - PINK GRADIENT */}
             <Link to="/shop" className="group">
               <Card className="p-4 h-full bg-gradient-to-br from-pink-50 via-white to-white border-pink-100 hover:border-pink-300 hover:shadow-md transition-all flex items-center gap-4 cursor-pointer">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 text-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
@@ -297,7 +412,6 @@ export function DashboardHome() {
             </div>
           </div>
 
-          {/* Mini Share Card */}
           <div className="mt-4 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 shadow-sm flex items-center justify-between group cursor-pointer hover:border-indigo-200 transition-colors">
             <div>
               <h3 className="font-bold text-slate-900 text-sm">
@@ -359,7 +473,6 @@ function useTypewriter(text, speed = 150) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [index, setIndex] = useState(0);
 
-  // Reset if text changes (e.g., from "User" to "John Doe")
   useEffect(() => {
     setDisplayText("");
     setIndex(0);

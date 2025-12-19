@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -65,19 +65,21 @@ const brands = [
 
 export function LandingPage() {
   const { session } = useAuthStore();
+  const navigate = useNavigate();
 
-  // --- NAVBAR & SCROLL STATE LOGIC ---
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const lastScrollY = useRef(0);
 
+  // ✅ Interactive Demo State
+  const [demoUsername, setDemoUsername] = useState("");
+
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
 
-      // Navbar Logic
       if (
         currentScrollY > lastScrollY.current &&
         currentScrollY > 50 &&
@@ -89,10 +91,7 @@ export function LandingPage() {
       }
 
       setIsScrolled(currentScrollY > 20);
-
-      // Back-to-Top Logic
       setShowBackToTop(currentScrollY > 400);
-
       lastScrollY.current = currentScrollY;
     };
 
@@ -104,10 +103,15 @@ export function LandingPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const handleClaim = () => {
+    if (demoUsername) {
+      navigate(`/register?username=${demoUsername}`);
+    }
+  };
+
   const navLinks = [
     { name: "Features", href: "#features" },
     { name: "How it Works", href: "#works" },
-    { name: "Reviews", href: "#reviews" },
   ];
 
   return (
@@ -134,7 +138,7 @@ export function LandingPage() {
             className="flex items-center gap-3 group cursor-pointer"
             onClick={scrollToTop}
           >
-            <div className="w-10 h-10 bg-gradient-to-br from-brand-500 to-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
+            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
               <Globe size={20} />
             </div>
             <span className="font-heading font-bold text-xl tracking-tight text-slate-900">
@@ -148,10 +152,10 @@ export function LandingPage() {
               <a
                 key={link.name}
                 href={link.href}
-                className="text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors relative group"
+                className="text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors relative group"
               >
                 {link.name}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-brand-600 transition-all group-hover:w-full"></span>
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-indigo-600 transition-all group-hover:w-full"></span>
               </a>
             ))}
           </div>
@@ -170,7 +174,7 @@ export function LandingPage() {
                 <>
                   <Link
                     to="/login"
-                    className="font-bold text-sm text-slate-600 hover:text-brand-600 transition-colors"
+                    className="font-bold text-sm text-slate-600 hover:text-indigo-600 transition-colors"
                   >
                     Log in
                   </Link>
@@ -203,24 +207,28 @@ export function LandingPage() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 inset-x-0 z-40 bg-white border-b border-slate-100 p-6 md:hidden shadow-2xl"
+            className="fixed top-[70px] inset-x-4 z-40 bg-white/95 backdrop-blur-2xl border border-slate-200/50 rounded-2xl p-6 md:hidden shadow-2xl ring-1 ring-black/5"
           >
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-2">
               {navLinks.map((link) => (
                 <a
                   key={link.name}
                   href={link.href}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="text-lg font-medium text-slate-900 py-3 border-b border-slate-100 hover:text-brand-600 transition-colors"
+                  className="text-lg font-bold text-slate-800 py-3 px-2 border-b border-slate-100 hover:bg-slate-50 hover:text-indigo-600 transition-colors rounded-lg flex items-center justify-between group"
                 >
                   {link.name}
+                  <ChevronRight
+                    size={16}
+                    className="text-slate-300 group-hover:text-indigo-400 transition-colors"
+                  />
                 </a>
               ))}
               <div className="pt-6 flex flex-col gap-3">
                 {session ? (
                   <Link
                     to="/dashboard"
-                    className="w-full justify-center font-bold text-lg bg-slate-900 text-white px-4 py-3 rounded-xl flex items-center gap-2"
+                    className="w-full justify-center font-bold text-lg bg-slate-900 text-white px-4 py-3.5 rounded-xl flex items-center gap-2 shadow-xl shadow-slate-900/10"
                   >
                     Dashboard <ChevronRight size={18} />
                   </Link>
@@ -229,14 +237,14 @@ export function LandingPage() {
                     <Link
                       to="/login"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="w-full justify-center font-bold text-lg border border-slate-200 text-slate-900 px-6 py-3 rounded-xl hover:bg-slate-50"
+                      className="w-full justify-center font-bold text-lg border-2 border-slate-100 text-slate-700 px-6 py-3 rounded-xl hover:bg-slate-50 hover:border-slate-200 transition-all"
                     >
                       Log in
                     </Link>
                     <Link
                       to="/register"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="w-full justify-center font-bold text-lg bg-brand-600 text-white px-6 py-3 rounded-xl flex items-center gap-2 shadow-lg shadow-brand-500/20"
+                      className="w-full justify-center font-bold text-lg bg-indigo-600 text-white px-6 py-3.5 rounded-xl flex items-center gap-2 shadow-xl shadow-indigo-500/20 active:scale-95 transition-all"
                     >
                       Get Started Free <ChevronRight size={18} />
                     </Link>
@@ -248,14 +256,14 @@ export function LandingPage() {
         )}
       </AnimatePresence>
 
-      <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-brand-100 selection:text-brand-900 overflow-x-hidden">
+      <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-indigo-100 selection:text-indigo-900 overflow-x-hidden">
         {/* --- HERO SECTION --- */}
         <header className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 px-6 overflow-hidden">
           {/* Background Effects */}
           <div className="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
 
           <div className="absolute top-20 left-10 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
-          <div className="absolute top-20 right-10 w-72 h-72 bg-brand-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+          <div className="absolute top-20 right-10 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
           <div className="absolute -bottom-32 left-1/3 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
 
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-12 items-center relative z-10">
@@ -267,50 +275,61 @@ export function LandingPage() {
               className="flex flex-col items-center lg:items-start text-center lg:text-left"
             >
               <motion.div variants={itemVariants}>
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-50 border border-brand-100 text-brand-700 text-xs font-bold uppercase tracking-wider mb-8 hover:bg-brand-100 transition-colors cursor-default shadow-sm">
-                  <Zap size={14} className="fill-brand-700" />
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-bold uppercase tracking-wider mb-8 hover:bg-indigo-100 transition-colors cursor-default shadow-sm">
+                  <Zap size={14} className="fill-indigo-700" />
                   v2.0 is Live
                 </div>
               </motion.div>
 
               <motion.h1
                 variants={itemVariants}
-                className="text-5xl lg:text-7xl font-heading font-extrabold leading-[1.1] mb-6 tracking-tight text-slate-900 min-h-[3.3em] lg:min-h-[2.2em]"
+                className="text-4xl sm:text-5xl lg:text-7xl font-heading font-extrabold leading-[1.1] mb-6 tracking-tight text-slate-900"
               >
-                One Link to <br />
-                {/* ✅ TYPEWRITER EFFECT APPLIED HERE */}
+                Your Digital Identity, <br />
+                {/* ✅ TYPEWRITER IS USED HERE */}
                 <Typewriter
-                  text="Rule Them All."
-                  className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 via-purple-600 to-pink-600 animate-gradient bg-[length:200%_auto]"
+                  text="All in One Link."
+                  className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 animate-gradient bg-[length:200%_auto]"
+                  speed={150}
+                  pause={2000}
                 />
               </motion.h1>
 
               <motion.p
                 variants={itemVariants}
-                className="text-xl text-slate-500 mb-10 leading-relaxed max-w-lg"
+                className="text-lg sm:text-xl text-slate-600 mb-10 leading-relaxed max-w-lg"
               >
-                Consolidate your digital presence. Connect your audience to all
-                of your content, products, and socials with just one beautiful
-                URL.
+                Join 10,000+ creators using ReachMe to share content, sell
+                products, and grow their audience.
               </motion.p>
 
+              {/* ✅ INTERACTIVE HERO INPUT */}
               <motion.div
                 variants={itemVariants}
-                className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto"
+                className="flex flex-col sm:flex-row gap-3 w-full max-w-md mb-8"
               >
-                <Link
-                  to="/register"
-                  className="inline-flex items-center justify-center gap-2 bg-slate-900 text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-slate-800 transition-all hover:-translate-y-1 shadow-xl shadow-slate-900/20 w-full sm:w-auto"
+                <div className="relative flex-1 group">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-lg group-focus-within:text-indigo-600 transition-colors">
+                    reach.me/
+                  </span>
+                  <input
+                    type="text"
+                    value={demoUsername}
+                    onChange={(e) =>
+                      setDemoUsername(
+                        e.target.value.replace(/\s+/g, "").toLowerCase()
+                      )
+                    }
+                    placeholder="yourname"
+                    className="w-full pl-28 pr-4 py-4 bg-white border-2 border-slate-200 rounded-full outline-none focus:border-indigo-500 font-bold text-lg text-slate-800 shadow-sm transition-all"
+                  />
+                </div>
+                <button
+                  onClick={handleClaim}
+                  className="bg-slate-900 text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-slate-800 transition-all hover:scale-105 shadow-xl shadow-slate-900/20 whitespace-nowrap"
                 >
-                  Claim your ReachMe
-                  <ArrowRight size={20} />
-                </Link>
-                <Link
-                  to="/login"
-                  className="inline-flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 px-8 py-4 rounded-full font-bold text-lg hover:bg-slate-50 hover:border-slate-300 transition-all w-full sm:w-auto"
-                >
-                  View Demo
-                </Link>
+                  Claim Link
+                </button>
               </motion.div>
 
               <motion.div
@@ -346,7 +365,7 @@ export function LandingPage() {
               transition={{ duration: 0.8, delay: 0.2 }}
               className="relative hidden lg:block perspective-1000"
             >
-              <div className="absolute inset-0 bg-gradient-to-tr from-brand-500/20 to-purple-500/20 rounded-full blur-[100px] -z-10 transform translate-y-20"></div>
+              <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 rounded-full blur-[100px] -z-10 transform translate-y-20"></div>
 
               <motion.div
                 animate={{ y: [0, -15, 0] }}
@@ -362,22 +381,30 @@ export function LandingPage() {
 
                   {/* Screen Content */}
                   <div className="w-full h-full bg-slate-50 overflow-hidden flex flex-col items-center pt-14 px-5 relative">
-                    <div className="w-full absolute top-0 left-0 h-32 bg-gradient-to-br from-brand-400 to-purple-500 rounded-b-[2.5rem]"></div>
+                    <div className="w-full absolute top-0 left-0 h-32 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-b-[2.5rem]"></div>
 
                     <div className="z-10 w-24 h-24 bg-white p-1 rounded-full mb-2 shadow-lg mt-4">
+                      {/* ✅ DYNAMIC AVATAR based on demoUsername */}
                       <img
-                        src="sam.jpg"
+                        src={
+                          demoUsername
+                            ? `https://api.dicebear.com/7.x/initials/svg?seed=${demoUsername}`
+                            : "sam.jpg"
+                        }
                         alt="Avatar"
                         className="w-full h-full rounded-full object-cover"
                       />
                     </div>
 
                     <div className="z-10 text-center mb-5">
-                      <h3 className="font-bold text-slate-900 text-lg">
-                        HSSamuel
+                      {/* ✅ DYNAMIC TEXT */}
+                      <h3 className="font-bold text-slate-900 text-lg transition-all">
+                        {demoUsername ? `@${demoUsername}` : "HSSamuel"}
                       </h3>
                       <p className="text-slate-500 text-xs mt-1">
-                        Graphic Designer 🎨 | Tech Enthusiast 💻
+                        {demoUsername
+                          ? "Creator | Entrepreneur"
+                          : "Graphic Designer 🎨 | Tech Enthusiast 💻"}
                       </p>
                     </div>
 
@@ -473,7 +500,7 @@ export function LandingPage() {
           </div>
         </header>
 
-        {/* --- LOGO CLOUD (INFINITE SCROLL) --- */}
+        {/* --- LOGO CLOUD --- */}
         <section className="py-10 border-y border-slate-100 bg-slate-50/50 relative overflow-hidden">
           <div className="max-w-7xl mx-auto px-6 text-center mb-8">
             <p className="text-sm font-semibold text-slate-400 uppercase tracking-widest">
@@ -482,28 +509,23 @@ export function LandingPage() {
           </div>
 
           <div className="relative flex overflow-hidden group">
-            {/* Gradient Masks for smooth fade in/out */}
             <div className="absolute top-0 left-0 w-24 h-full bg-gradient-to-r from-slate-50 to-transparent z-10 pointer-events-none"></div>
             <div className="absolute top-0 right-0 w-24 h-full bg-gradient-to-l from-slate-50 to-transparent z-10 pointer-events-none"></div>
 
-            {/* The Moving Track */}
             <motion.div
               className="flex gap-16 items-center flex-nowrap"
-              // Moves from 0% to -50% (halfway) then repeats instantly
               animate={{ x: ["0%", "-50%"] }}
               transition={{
                 repeat: Infinity,
                 ease: "linear",
-                duration: 25, // Adjust speed: higher = slower
+                duration: 25,
               }}
             >
-              {/* Render logos TWICE to create seamless loop */}
               {[...brands, ...brands].map((brand, index) => (
                 <div
                   key={`${brand.name}-${index}`}
                   className="flex items-center gap-2 group/item cursor-pointer min-w-[120px]"
                 >
-                  {/* SVG Icon */}
                   <div className="w-8 h-8 text-slate-400 group-hover/item:text-slate-900 transition-colors duration-300">
                     <svg
                       viewBox="0 0 24 24"
@@ -513,7 +535,6 @@ export function LandingPage() {
                       <path d={brand.path} />
                     </svg>
                   </div>
-                  {/* Text Label */}
                   <span className="text-xl font-bold text-slate-400 group-hover/item:text-slate-900 transition-colors duration-300">
                     {brand.name}
                   </span>
@@ -557,7 +578,7 @@ export function LandingPage() {
                   key={idx}
                   className="relative flex flex-col items-center text-center"
                 >
-                  <div className="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center text-brand-600 mb-6 shadow-sm border border-brand-100">
+                  <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 mb-6 shadow-sm border border-indigo-100">
                     <step.icon size={32} />
                   </div>
                   <h3 className="text-xl font-bold text-slate-900 mb-3">
@@ -615,7 +636,7 @@ export function LandingPage() {
               ].map((feature, i) => (
                 <div
                   key={i}
-                  className="group bg-white p-8 rounded-[2rem] border border-slate-100 hover:border-brand-200 hover:shadow-2xl hover:shadow-brand-500/10 transition-all duration-300 hover:-translate-y-1"
+                  className="group bg-white p-8 rounded-[2rem] border border-slate-100 hover:border-indigo-200 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 hover:-translate-y-1"
                 >
                   <div
                     className={`w-14 h-14 ${feature.bg} rounded-2xl flex items-center justify-center mb-6 shadow-sm border border-slate-100 group-hover:scale-110 transition-transform`}
@@ -634,7 +655,7 @@ export function LandingPage() {
                         key={j}
                         className="flex items-center gap-2 text-sm text-slate-600"
                       >
-                        <CheckCircle2 size={16} className="text-brand-500" />{" "}
+                        <CheckCircle2 size={16} className="text-indigo-500" />{" "}
                         {item}
                       </li>
                     ))}
@@ -645,77 +666,11 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* --- REVIEWS --- */}
-        <section id="reviews" className="py-24 bg-white">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-bold text-slate-900 mb-6">
-                Loved by creators.
-              </h2>
-            </div>
-            <div className="grid md:grid-cols-3 gap-8">
-              {[
-                {
-                  name: "Joy B.",
-                  role: "Seamstress",
-                  // ✅ Added Avatar URL
-                  avatar: "https://i.pravatar.cc/150?img=32",
-                  quote:
-                    "ReachMe completely transformed how I showcase my portfolio. The analytics are a game changer.",
-                },
-                {
-                  name: "Sarah J.",
-                  role: "Musician",
-                  // ✅ Added Avatar URL
-                  avatar: "https://i.pravatar.cc/150?img=47",
-                  quote:
-                    "The easiest way to link my new tracks, merch, and tour dates. My fans love how clean it looks.",
-                },
-                {
-                  name: "David K.",
-                  role: "Content Creator",
-                  // ✅ Added Avatar URL
-                  avatar: "https://i.pravatar.cc/150?img=59",
-                  quote:
-                    "I switched from Linktree because the customization on ReachMe is just next level.",
-                },
-              ].map((review, i) => (
-                <div
-                  key={i}
-                  className="p-8 rounded-2xl bg-slate-50 border border-slate-100"
-                >
-                  <div className="flex gap-1 text-yellow-400 mb-4">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star key={star} size={16} fill="currentColor" />
-                    ))}
-                  </div>
-                  <p className="text-slate-700 italic mb-6">"{review.quote}"</p>
-                  <div className="flex items-center gap-3">
-                    {/* ✅ REPLACED placeholder <div> with <img> */}
-                    <img
-                      src={review.avatar}
-                      alt={review.name}
-                      className="w-10 h-10 rounded-full object-cover shadow-sm border border-white"
-                    />
-                    <div>
-                      <p className="font-bold text-slate-900 text-sm">
-                        {review.name}
-                      </p>
-                      <p className="text-slate-500 text-xs">{review.role}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* --- FOOTER CTA (COMPACTED) --- */}
-        {/* ✅ CHANGED py-24 to py-12 for less vertical space */}
+        {/* --- FOOTER CTA --- */}
         <footer className="bg-slate-900 text-white py-12 relative overflow-hidden">
           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#ffffff33_1px,transparent_1px)] [background-size:16px_16px]"></div>
 
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-brand-500/30 rounded-full blur-[100px]"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/30 rounded-full blur-[100px]"></div>
 
           <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
             <h2 className="text-4xl md:text-6xl font-heading font-bold mb-8 tracking-tight">
@@ -729,13 +684,12 @@ export function LandingPage() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 to="/register"
-                className="inline-flex items-center gap-2 bg-brand-600 text-white px-10 py-5 rounded-full font-bold text-xl hover:bg-brand-500 transition-all hover:scale-105 shadow-2xl shadow-brand-500/50"
+                className="inline-flex items-center gap-2 bg-indigo-600 text-white px-10 py-5 rounded-full font-bold text-xl hover:bg-indigo-500 transition-all hover:scale-105 shadow-2xl shadow-indigo-500/50"
               >
                 Get Started for Free <ArrowRight />
               </Link>
             </div>
 
-            {/* ✅ COMPACTED MARGINS: mt-20 -> mt-12, pt-10 -> pt-8 */}
             <div className="mt-12 pt-8 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center text-slate-500 text-sm">
               <p>© 2025 ReachMe. All rights reserved.</p>
               <div className="flex gap-6 mt-4 md:mt-0">
@@ -761,7 +715,7 @@ export function LandingPage() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.5 }}
               onClick={scrollToTop}
-              className="fixed bottom-3 right-3 z-50 p-3 bg-slate-700 text-white rounded-full shadow-xl hover:bg-brand-600 transition-colors"
+              className="fixed bottom-3 right-3 z-50 p-3 bg-slate-700 text-white rounded-full shadow-xl hover:bg-indigo-600 transition-colors"
             >
               <ArrowUp size={10} />
             </motion.button>
@@ -772,7 +726,7 @@ export function LandingPage() {
   );
 }
 
-// ✅ Typewriter Component
+// ✅ Typewriter Component (Added at the bottom to fix ReferenceError)
 function Typewriter({ text, className, speed = 150, pause = 2000 }) {
   const [displayText, setDisplayText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -781,22 +735,18 @@ function Typewriter({ text, className, speed = 150, pause = 2000 }) {
     let timeout;
 
     if (!isDeleting && displayText.length < text.length) {
-      // Typing
       timeout = setTimeout(() => {
         setDisplayText(text.slice(0, displayText.length + 1));
       }, speed);
     } else if (isDeleting && displayText.length > 0) {
-      // Deleting (faster)
       timeout = setTimeout(() => {
         setDisplayText(text.slice(0, displayText.length - 1));
       }, speed / 2);
     } else if (!isDeleting && displayText.length === text.length) {
-      // Pause before deleting
       timeout = setTimeout(() => {
         setIsDeleting(true);
       }, pause);
     } else if (isDeleting && displayText.length === 0) {
-      // Pause before typing again
       timeout = setTimeout(() => {
         setIsDeleting(false);
       }, 500);
@@ -808,7 +758,7 @@ function Typewriter({ text, className, speed = 150, pause = 2000 }) {
   return (
     <span className="inline-block">
       <span className={className}>{displayText}</span>
-      <span className="animate-pulse ml-0.5 text-brand-600">|</span>
+      <span className="animate-pulse ml-0.5 text-indigo-600">|</span>
     </span>
   );
 }
