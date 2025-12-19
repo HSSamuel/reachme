@@ -1,32 +1,39 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../config/supabaseClient";
+import { useAuthStore } from "../store/authStore"; // ✅ Import Auth Store
 import toast from "react-hot-toast";
 
 export function useProfile() {
+  const { user } = useAuthStore(); // ✅ Get the reactive user object
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // ✅ RE-FETCH WHEN USER CHANGES
+  // This ensures that if the account switches, the profile switches too.
   useEffect(() => {
-    fetchProfile();
-  }, []);
+    if (user?.id) {
+      fetchProfile(user.id);
+    } else {
+      setProfile(null);
+      setLoading(false);
+    }
+  }, [user?.id]); // 👈 The key fix: Dependency on user.id
 
-  const fetchProfile = async () => {
+  const fetchProfile = async (userId) => {
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
+      setLoading(true);
 
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("id", user.id)
+        .eq("id", userId) // ✅ Use the ID passed from the store
         .single();
 
       if (error) throw error;
       setProfile(data);
     } catch (error) {
       console.error("Error fetching profile:", error);
+      // Don't show toast on 406 (No profile found yet), let the UI handle empty state
     } finally {
       setLoading(false);
     }
@@ -34,13 +41,10 @@ export function useProfile() {
 
   const updateProfile = async (updates) => {
     try {
+      if (!user) throw new Error("No user logged in");
+
       // 1. Optimistic Update
       setProfile((prev) => ({ ...prev, ...updates }));
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error("No user logged in");
 
       const { error } = await supabase
         .from("profiles")
@@ -48,7 +52,6 @@ export function useProfile() {
         .eq("id", user.id);
 
       if (error) throw error;
-      // toast.success("Profile updated"); // Optional: Removed to reduce noise on auto-save
     } catch (error) {
       console.error("Update error:", error);
       toast.error("Failed to update profile");
@@ -57,9 +60,6 @@ export function useProfile() {
 
   const uploadAvatar = async (file) => {
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
       if (!user) throw new Error("No user");
 
       const fileExt = file.name.split(".").pop();

@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
 import { motion } from "framer-motion";
-import { toast } from "react-hot-toast"; // ✅ Added Toast
+import { toast } from "react-hot-toast";
 import {
   Mail,
   Lock,
@@ -25,7 +25,15 @@ export function LoginForm() {
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
-  const { login, signInWithSocial } = useAuthStore();
+  // ✅ FIX 1: Get 'user' from store
+  const { login, signInWithSocial, user } = useAuthStore();
+
+  // ✅ FIX 2: Redirect if already logged in (Prevents stale session confusion)
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
