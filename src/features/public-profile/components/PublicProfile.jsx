@@ -23,6 +23,7 @@ import {
   Gamepad2,
   Mic2,
   Twitch,
+  Mail, // ✅ Import Mail Icon
 } from "lucide-react";
 import { SEO } from "../../../components/seo/SEO";
 import { SubscribeBlock } from "./SubscribeBlock";
@@ -74,10 +75,16 @@ export function PublicProfile() {
     return yiq >= 128 ? "black" : "white";
   };
 
-  // ✅ HELPER: Handles 'tel:' for phone and 'https://' for others
+  // ✅ HELPER: Handles 'tel:', 'gmail', and 'https://'
   const getSocialLink = (platform, value) => {
     if (!value) return null;
     if (platform === "phone") return `tel:${value}`;
+
+    // ✅ GMAIL COMPOSE LOGIC
+    if (platform === "email") {
+      return `https://mail.google.com/mail/?view=cm&fs=1&to=${value}`;
+    }
+
     if (value.startsWith("http") || value.startsWith("//")) return value;
     return `https://${value}`;
   };
@@ -133,7 +140,6 @@ export function PublicProfile() {
     document.body.removeChild(link);
   };
 
-  // ✅ CALCULATE BUTTON TEXT COLOR
   const tippingBgColor = profile.theme_color || "#ec4899";
   const tippingTextColor = getContrastYIQ(tippingBgColor);
 
@@ -157,15 +163,11 @@ export function PublicProfile() {
           <div className="fixed inset-0 bg-black/40 pointer-events-none" />
         )}
 
-        {/* ✅ PLAIN CONTAINER: Changes bg color based on darkness */}
         <div
-          // 👇 UPDATE THIS CLASSNAME BLOCK
           className={`relative z-10 w-full max-w-[600px] min-h-[500px] rounded-[2.5rem] p-6 sm:p-8 transition-all duration-500 shadow-2xl ${
             isDarkBg
-              ? // Dark Theme: Low opacity black (20%) + High Blur
-                "bg-black/20 backdrop-blur-xl border border-white/10"
-              : // Light Theme: Low opacity white (20%) + High Blur
-                "bg-white/20 backdrop-blur-xl border border-white/20"
+              ? "bg-black/20 backdrop-blur-xl border border-white/10"
+              : "bg-white/20 backdrop-blur-xl border border-white/20"
           }`}
         >
           {/* 1. Header */}
@@ -206,6 +208,16 @@ export function PublicProfile() {
 
           {/* SOCIAL ICONS */}
           <div className="flex items-center justify-center gap-3 flex-wrap mb-6">
+            {/* ✅ GMAIL ICON */}
+            {profile.social_email && (
+              <SocialLink
+                Icon={Mail}
+                url={getSocialLink("email", profile.social_email)}
+                isDark={isDarkBg}
+                color="#EA4335" // Official Gmail Red
+              />
+            )}
+
             {profile.social_phone && (
               <SocialLink
                 Icon={Phone}
@@ -352,7 +364,7 @@ export function PublicProfile() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              whileHover={{ scale: 1.02 }} // ✅ Adds the hover scale effect
+              whileHover={{ scale: 1.02 }}
               className="mb-8 w-full"
             >
               <SubscribeBlock

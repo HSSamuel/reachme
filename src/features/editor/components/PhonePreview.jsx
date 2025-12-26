@@ -18,6 +18,7 @@ import {
   Gamepad2,
   Mic2,
   MapPin,
+  Mail, // ✅ Import Mail Icon
 } from "lucide-react";
 
 export function PhonePreview({ profile }) {
@@ -31,16 +32,12 @@ export function PhonePreview({ profile }) {
       </div>
     );
 
-  // ✅ SMART NAME LOGIC:
-  // 1. Profile Name (if edited in settings)
-  // 2. Auth Metadata Name (from registration)
-  // 3. Username (fallback)
+  // ✅ SMART NAME LOGIC
   const displayName =
     profile.full_name ||
     user?.user_metadata?.full_name ||
     profile.username ||
     "Creator";
-  const displayHandle = profile.username ? `@${profile.username}` : "";
 
   const bgStyle = profile.background_url
     ? {
@@ -58,6 +55,12 @@ export function PhonePreview({ profile }) {
   const getSocialLink = (platform, value) => {
     if (!value) return null;
     if (platform === "phone") return `tel:${value}`;
+
+    // ✅ GMAIL COMPOSE LOGIC
+    if (platform === "email") {
+      return `https://mail.google.com/mail/?view=cm&fs=1&to=${value}`;
+    }
+
     if (value.startsWith("http") || value.startsWith("//")) return value;
     return `https://${value}`;
   };
@@ -85,7 +88,6 @@ export function PhonePreview({ profile }) {
               <img
                 src={
                   profile.avatar_url ||
-                  // ✅ FIX: Use 'displayName' for seed so initials match Real Name
                   `https://api.dicebear.com/7.x/initials/svg?seed=${displayName}`
                 }
                 className="w-full h-full object-cover"
@@ -101,7 +103,6 @@ export function PhonePreview({ profile }) {
                   : ""
               }`}
             >
-              {/* ✅ FIX: Show Real Name */}
               <h2
                 className={`font-bold text-sm leading-tight transition-colors duration-300 ${
                   isDarkTheme ? "text-white" : "text-slate-900"
@@ -124,6 +125,11 @@ export function PhonePreview({ profile }) {
 
           {/* 2. SOCIAL ICONS */}
           <div className="flex items-center justify-center gap-2.5 flex-wrap px-2">
+            <SocialIcon
+              Icon={Mail}
+              url={getSocialLink("email", profile.social_email)}
+              color="#EA4335"
+            />
             <SocialIcon
               Icon={Phone}
               url={getSocialLink("phone", profile.social_phone)}
@@ -190,7 +196,8 @@ export function PhonePreview({ profile }) {
           {(profile.tipping_enabled || profile.newsletter_enabled) && (
             <div className="space-y-3">
               {profile.tipping_enabled && (
-                <button className="w-full flex items-center justify-center gap-2 bg-white shadow-sm border border-slate-100 text-slate-800 px-4 py-2.5 rounded-xl font-bold text-xs hover:scale-[1.02] transition-transform active:scale-95">
+                // ✅ UPDATED: Added max-w-[95%] and mx-auto
+                <button className="w-full max-w-[95%] mx-auto flex items-center justify-center gap-2 bg-white shadow-sm border border-slate-100 text-slate-800 px-4 py-2.5 rounded-xl font-bold text-xs hover:scale-[1.02] transition-transform active:scale-95">
                   <Heart size={14} className="text-red-500 fill-red-500" />
                   {profile.tipping_title || "Support Me"}
                 </button>
@@ -221,6 +228,7 @@ export function PhonePreview({ profile }) {
                   link={link}
                   buttonStyle={profile.button_style}
                   themeColor={profile.theme_color}
+                  isDark={isDarkTheme} // ✅ Pass isDark prop to Links
                 />
               ))}
           </div>

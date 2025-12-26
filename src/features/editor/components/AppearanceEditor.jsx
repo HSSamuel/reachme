@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"; // ✅ Added useEffect
+import { useState, useEffect } from "react";
 import { useProfile } from "../../../hooks/useProfile";
 import { PhonePreview } from "../../editor/components/PhonePreview";
 import {
@@ -27,7 +27,8 @@ import {
   Mic2,
   Github,
   Twitch,
-  Check, // ✅ Added Check icon for save confirmation
+  Check,
+  Mail, // ✅ Mail Icon
 } from "lucide-react";
 import { supabase } from "../../../config/supabaseClient";
 import { Switch } from "../../../components/ui/Switch";
@@ -40,10 +41,9 @@ export function AppearanceEditor() {
   const [uploading, setUploading] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  // ✅ LOCAL STATE for username to allow typing without auto-saving
+  // Local state for username
   const [usernameInput, setUsernameInput] = useState("");
 
-  // ✅ SYNC STATE: When profile loads, update the input box
   useEffect(() => {
     if (profile?.username) {
       setUsernameInput(profile.username);
@@ -56,20 +56,16 @@ export function AppearanceEditor() {
     setOpenSection(openSection === section ? null : section);
   };
 
-  // ✅ ROBUST SAVE FUNCTION
   const handleUsernameSave = async () => {
-    // 1. Validation: Don't save if empty or unchanged
     if (!usernameInput || usernameInput.trim() === "") return;
     if (usernameInput === profile.username) return;
 
     try {
-      // 2. Save to DB
       await updateProfile({ username: usernameInput.trim() });
       toast.success("Username updated!");
     } catch (error) {
       console.error(error);
       toast.error("Failed to save. Username might be taken.");
-      // Revert to old username on error
       setUsernameInput(profile.username || "");
     }
   };
@@ -108,6 +104,9 @@ export function AppearanceEditor() {
       </div>
     );
 
+  // ✅ CRITICAL FIX: Prevent crash if profile is null
+  if (!profile) return null;
+
   return (
     <div className="max-w-7xl mx-auto pb-24 px-4 relative">
       <div className="flex items-end justify-between mb-6">
@@ -133,7 +132,7 @@ export function AppearanceEditor() {
             <div className="flex flex-col-reverse sm:flex-row items-center sm:items-start gap-5">
               {/* Inputs Container */}
               <div className="flex-1 space-y-3 w-full min-w-0">
-                {/* ✅ UPDATED USERNAME INPUT */}
+                {/* Username Input */}
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-500 uppercase">
                     Username
@@ -145,12 +144,11 @@ export function AppearanceEditor() {
                       onChange={(e) =>
                         setUsernameInput(e.target.value.replace("@", ""))
                       }
-                      onBlur={handleUsernameSave} // Save on click away
-                      onKeyDown={(e) => e.key === "Enter" && e.target.blur()} // Save on Enter
+                      onBlur={handleUsernameSave}
+                      onKeyDown={(e) => e.key === "Enter" && e.target.blur()}
                       placeholder="username"
                       className="w-full text-sm font-bold text-slate-900 bg-white border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:font-normal"
                     />
-                    {/* Visual Success Indicator if saved */}
                     {usernameInput && usernameInput === profile.username && (
                       <div className="absolute right-3 top-2.5 text-green-500">
                         <Check size={16} />
@@ -162,14 +160,14 @@ export function AppearanceEditor() {
                   </p>
                 </div>
 
-                {/* DISPLAY NAME INPUT */}
+                {/* Display Name Input */}
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-500 uppercase">
                     Display Name
                   </label>
                   <Input
                     placeholder="e.g. John Doe"
-                    value={profile.full_name || ""}
+                    value={profile?.full_name || ""} // ✅ Added Optional Chaining
                     onChange={(e) =>
                       updateProfile({ full_name: e.target.value })
                     }
@@ -185,7 +183,7 @@ export function AppearanceEditor() {
                     placeholder="Tell your story..."
                     rows="2"
                     className="w-full text-sm text-slate-700 border border-slate-200 rounded-lg px-3 py-2 focus:border-indigo-500 outline-none resize-none bg-white transition-colors"
-                    value={profile.bio || ""}
+                    value={profile?.bio || ""}
                     onChange={(e) => updateProfile({ bio: e.target.value })}
                   />
                 </div>
@@ -410,6 +408,13 @@ export function AppearanceEditor() {
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   Contact
                 </label>
+                {/* ✅ Added Email Input */}
+                <SocialInput
+                  icon={<Mail size={16} className="text-red-500" />}
+                  placeholder="you@gmail.com"
+                  value={profile.social_email}
+                  onChange={(v) => updateProfile({ social_email: v })}
+                />
                 <SocialInput
                   icon={<Phone size={16} className="text-green-600" />}
                   placeholder="+1 (555) 000-0000"
