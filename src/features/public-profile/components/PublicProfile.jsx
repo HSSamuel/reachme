@@ -23,7 +23,7 @@ import {
   Gamepad2,
   Mic2,
   Twitch,
-  Mail, // ✅ Import Mail Icon
+  Mail,
 } from "lucide-react";
 import { SEO } from "../../../components/seo/SEO";
 import { SubscribeBlock } from "./SubscribeBlock";
@@ -75,20 +75,17 @@ export function PublicProfile() {
     return yiq >= 128 ? "black" : "white";
   };
 
-  // ✅ HELPER: Handles 'tel:', 'gmail', and 'https://'
   const getSocialLink = (platform, value) => {
     if (!value) return null;
     if (platform === "phone") return `tel:${value}`;
-
-    // ✅ GMAIL COMPOSE LOGIC
     if (platform === "email") {
       return `https://mail.google.com/mail/?view=cm&fs=1&to=${value}`;
     }
-
     if (value.startsWith("http") || value.startsWith("//")) return value;
     return `https://${value}`;
   };
 
+  // ✅ FIX: Use background_color instead of theme_color
   const bgStyle = profile.background_url
     ? {
         backgroundImage: `url(${profile.background_url})`,
@@ -96,11 +93,12 @@ export function PublicProfile() {
         backgroundPosition: "center",
         backgroundAttachment: "fixed",
       }
-    : { backgroundColor: profile.theme_color || "#f8fafc" };
+    : { backgroundColor: profile.background_color || "#f8fafc" };
 
+  // ✅ FIX: Use background_color for contrast check too
   const isDarkTheme =
     !profile.background_url &&
-    getContrastYIQ(profile.theme_color || "#f8fafc") === "white";
+    getContrastYIQ(profile.background_color || "#f8fafc") === "white";
 
   const isDarkBg = profile.background_url || isDarkTheme;
 
@@ -147,7 +145,8 @@ export function PublicProfile() {
     <>
       <SEO
         title={profile.full_name || `@${profile.username}`}
-        description={profile.bio}
+        description={profile.bio || `Check out ${profile.username}'s profile on ReachMe`}
+        // ✅ FIX: Pass profile.avatar_url explicitly as the image
         image={profile.avatar_url}
         url={window.location.href}
       />
@@ -208,16 +207,14 @@ export function PublicProfile() {
 
           {/* SOCIAL ICONS */}
           <div className="flex items-center justify-center gap-3 flex-wrap mb-6">
-            {/* ✅ GMAIL ICON */}
             {profile.social_email && (
               <SocialLink
                 Icon={Mail}
                 url={getSocialLink("email", profile.social_email)}
                 isDark={isDarkBg}
-                color="#EA4335" // Official Gmail Red
+                color="#EA4335"
               />
             )}
-
             {profile.social_phone && (
               <SocialLink
                 Icon={Phone}
@@ -456,7 +453,7 @@ export function PublicProfile() {
                 link={link}
                 buttonStyle={profile.button_style}
                 themeColor={profile.theme_color}
-                isDark={isDarkBg}
+                isDark={isDarkBg} // ✅ Correctly passing calculated dark mode
               />
             ))}
           </div>

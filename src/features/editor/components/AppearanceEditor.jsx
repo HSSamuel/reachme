@@ -541,7 +541,7 @@ export function AppearanceEditor() {
                       }
                     />
                     <Input
-                      placeholder="https://paypal.me/yourusername"
+                      placeholder="https://paystack.com/pay"
                       className="h-9 text-xs"
                       value={profile.tipping_url || ""}
                       onChange={(e) =>
