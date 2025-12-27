@@ -3,13 +3,14 @@ import { Helmet } from "react-helmet-async";
 export function SEO({ title, description, image, url }) {
   const siteTitle = "ReachMe";
   const fullTitle = title ? `${title} | ${siteTitle}` : siteTitle;
-  const defaultDesc = "One link for all your content.";
+  const defaultDesc =
+    "One link for all your content. Create your free profile today.";
   const metaDesc = description || defaultDesc;
-  // Fallback to logo only if no specific image is provided
-  const metaImage = image || "https://reachme.netlify.app/logo.png";
+  const metaImage = image || `${window.location.origin}/logo.png`;
 
   return (
     <Helmet>
+      {/* Standard Metadata */}
       <title>{fullTitle}</title>
       <meta name="description" content={metaDesc} />
 

@@ -100,8 +100,9 @@ export function PublicProfile() {
 
   const isDarkBg = profile.background_url || isDarkTheme;
 
-  // ✅ FIX: DEFINE AVATAR URL ONCE
-  // Use uploaded image OR generated initials (PNG for better social share support)
+  // ✅ FIX: DEFINE AVATAR URL LOGIC
+  // If user has an avatar, use it.
+  // If NOT, generate one using their username (PNG format required for social cards).
   const displayAvatar =
     profile.avatar_url ||
     `https://api.dicebear.com/7.x/initials/png?seed=${profile.username}`;
@@ -126,7 +127,7 @@ export function PublicProfile() {
       `NOTE:${profile.bio || "ReachMe Profile"}\\n\\nSocials:\\n${socialUrls}`,
       `URL:${window.location.href}`,
       profile.social_phone ? `TEL;TYPE=CELL:${profile.social_phone}` : "",
-      displayAvatar ? `PHOTO;VALUE=URI:${displayAvatar}` : "",
+      displayAvatar ? `PHOTO;VALUE=URI:${displayAvatar}` : "", // Use calculated avatar
       "END:VCARD",
     ]
       .filter(Boolean)
@@ -152,7 +153,7 @@ export function PublicProfile() {
         description={
           profile.bio || `Check out ${profile.username}'s profile on ReachMe`
         }
-        // ✅ FIX: Pass the calculated avatar (uploaded or initials)
+        // ✅ FIX: Pass the calculated avatar (uploaded or initials) to SEO
         image={displayAvatar}
         url={window.location.href}
       />
@@ -182,6 +183,7 @@ export function PublicProfile() {
             className="flex flex-col items-center text-center mb-8 w-full"
           >
             <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-[3px] border-white shadow-xl overflow-hidden mb-4 bg-white">
+              {/* ✅ Use displayAvatar here too for consistency */}
               <img
                 src={displayAvatar}
                 alt={profile.username}
