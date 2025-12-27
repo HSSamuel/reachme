@@ -85,7 +85,6 @@ export function PublicProfile() {
     return `https://${value}`;
   };
 
-  // ✅ FIX: Use background_color instead of theme_color
   const bgStyle = profile.background_url
     ? {
         backgroundImage: `url(${profile.background_url})`,
@@ -95,12 +94,17 @@ export function PublicProfile() {
       }
     : { backgroundColor: profile.background_color || "#f8fafc" };
 
-  // ✅ FIX: Use background_color for contrast check too
   const isDarkTheme =
     !profile.background_url &&
     getContrastYIQ(profile.background_color || "#f8fafc") === "white";
 
   const isDarkBg = profile.background_url || isDarkTheme;
+
+  // ✅ FIX: DEFINE AVATAR URL ONCE
+  // Use uploaded image OR generated initials (PNG for better social share support)
+  const displayAvatar =
+    profile.avatar_url ||
+    `https://api.dicebear.com/7.x/initials/png?seed=${profile.username}`;
 
   const handleSaveContact = () => {
     const socialUrls = [
@@ -122,7 +126,7 @@ export function PublicProfile() {
       `NOTE:${profile.bio || "ReachMe Profile"}\\n\\nSocials:\\n${socialUrls}`,
       `URL:${window.location.href}`,
       profile.social_phone ? `TEL;TYPE=CELL:${profile.social_phone}` : "",
-      profile.avatar_url ? `PHOTO;VALUE=URI:${profile.avatar_url}` : "",
+      displayAvatar ? `PHOTO;VALUE=URI:${displayAvatar}` : "",
       "END:VCARD",
     ]
       .filter(Boolean)
@@ -145,9 +149,11 @@ export function PublicProfile() {
     <>
       <SEO
         title={profile.full_name || `@${profile.username}`}
-        description={profile.bio || `Check out ${profile.username}'s profile on ReachMe`}
-        // ✅ FIX: Pass profile.avatar_url explicitly as the image
-        image={profile.avatar_url}
+        description={
+          profile.bio || `Check out ${profile.username}'s profile on ReachMe`
+        }
+        // ✅ FIX: Pass the calculated avatar (uploaded or initials)
+        image={displayAvatar}
         url={window.location.href}
       />
 
@@ -177,10 +183,7 @@ export function PublicProfile() {
           >
             <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-[3px] border-white shadow-xl overflow-hidden mb-4 bg-white">
               <img
-                src={
-                  profile.avatar_url ||
-                  `https://api.dicebear.com/7.x/initials/svg?seed=${profile.username}`
-                }
+                src={displayAvatar}
                 alt={profile.username}
                 className="w-full h-full object-cover"
               />
@@ -453,7 +456,7 @@ export function PublicProfile() {
                 link={link}
                 buttonStyle={profile.button_style}
                 themeColor={profile.theme_color}
-                isDark={isDarkBg} // ✅ Correctly passing calculated dark mode
+                isDark={isDarkBg}
               />
             ))}
           </div>
