@@ -48,6 +48,9 @@ const profileSchema = new mongoose.Schema(
     // SEO
     meta_title: { type: String, default: "" },
     meta_description: { type: String, default: "" },
+
+    // Analytics
+    views: { type: Number, default: 0 },
   },
   { timestamps: true },
 );

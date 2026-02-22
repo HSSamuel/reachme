@@ -2,7 +2,8 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const passport = require("passport"); // ✅ Added Passport import
+const passport = require("passport");
+const cookieParser = require("cookie-parser");
 
 // ✅ Load Passport Strategies so they are available globally
 require("./config/passport");
@@ -10,8 +11,14 @@ require("./config/passport");
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    credentials: true, // ✅ Required for HttpOnly cookies
+  }),
+);
 app.use(express.json());
+app.use(cookieParser()); // ✅ Parse cookies for authentication
 app.use(passport.initialize()); // ✅ Initialize Passport middleware
 
 // Basic Health Check Route
@@ -30,7 +37,9 @@ app.use("/api/upload", require("./routes/upload"));
 // Global Error Handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ error: "Something went wrong!" });
+  res
+    .status(err.status || 500)
+    .json({ error: err.message || "Something went wrong!" });
 });
 
 // ✅ START SERVER ONLY AFTER MONGODB CONNECTS
