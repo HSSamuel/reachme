@@ -16,9 +16,9 @@ const setTokenCookie = (res, userId) => {
 
   res.cookie("reachme_token", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production", // Secure in prod
-    sameSite: "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 Days
+    secure: true,    // ✅ MUST be true for Render -> Netlify
+    sameSite: "none", // ✅ MUST be "none" for Render -> Netlify
+    maxAge: 7 * 24 * 60 * 60 * 1000, 
   });
 };
 

@@ -10,10 +10,20 @@ require("./config/passport");
 
 const app = express();
 
+// ✅ CRITICAL FIX FOR RENDER:
+// Render acts as a reverse proxy and handles HTTPS.
+// Without this, Express will silently refuse to set 'secure: true' cookies.
+app.set("trust proxy", 1);
+
 // Middleware
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    // Provide an array to guarantee your Netlify app and Localhost are always allowed
+    origin: [
+      process.env.FRONTEND_URL,
+      "https://reachme.netlify.app",
+      "http://localhost:5173",
+    ].filter(Boolean),
     credentials: true, // ✅ Required for HttpOnly cookies
   }),
 );
