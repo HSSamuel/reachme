@@ -18,7 +18,6 @@ import {
   ChevronDown,
   ChevronUp,
   Phone,
-  MessageCircle,
   Music2,
   Ghost,
   Facebook,
@@ -29,16 +28,18 @@ import {
   Twitch,
   Check,
   Mail,
+  Video,
 } from "lucide-react";
-import { api } from "../../../config/api"; // ✅ Replaced supabase with api client
+import { api } from "../../../config/api";
 import { Switch } from "../../../components/ui/Switch";
 import { Input } from "../../../components/ui/Input";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function AppearanceEditor() {
-  const { profile, loading, updateProfile } = useProfile();
+  const { profile, loading, updateProfile, deleteFile } = useProfile();
   const [uploading, setUploading] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
 
   // Local state for username
@@ -72,25 +73,65 @@ export function AppearanceEditor() {
 
   const handleFileUpload = async (e, field) => {
     try {
-      setUploading(true);
+      const isVideo = field === "story_video_url";
+      if (isVideo) {
+        setUploadingVideo(true);
+      } else {
+        setUploading(true);
+      }
+
       const file = e.target.files[0];
       if (!file) return;
+
+      if (isVideo && file.size > 10 * 1024 * 1024) {
+        throw new Error("Video must be under 10MB");
+      }
+
+      // ✅ 1. Delete the old file from Cloudinary if replacing an existing one
+      const oldFileUrl = profile[field];
+      if (oldFileUrl) {
+        await deleteFile(oldFileUrl);
+      }
 
       const formData = new FormData();
       formData.append("image", file);
 
-      // ✅ Replaced Supabase Storage with API Cloudinary upload
+      // ✅ 2. Upload the new file
       const { data } = await api.post("/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
       await updateProfile({ [field]: data.url });
-      toast.success("Image uploaded!");
+      if (isVideo) {
+        toast.success("Story Video uploaded!");
+      } else {
+        toast.success("Image uploaded!");
+      }
     } catch (error) {
       console.error(error);
-      toast.error("Error uploading image");
+      toast.error(error.message || "Upload failed");
     } finally {
       setUploading(false);
+      setUploadingVideo(false);
+    }
+  };
+
+  // ✅ Handle physical removal of the Story Video
+  const handleRemoveStory = async () => {
+    if (profile.story_video_url) {
+      await deleteFile(profile.story_video_url); // Wipe from Cloudinary
+      await updateProfile({ story_video_url: "" }); // Clear from DB
+      toast.success("Story removed!");
+    }
+  };
+
+  // ✅ Handle physical removal of the Background Image
+  const handleRemoveBackground = async (e) => {
+    e.stopPropagation();
+    if (profile.background_url) {
+      await deleteFile(profile.background_url); // Wipe from Cloudinary
+      await updateProfile({ background_url: null }); // Clear from DB
+      toast.success("Background removed!");
     }
   };
 
@@ -119,7 +160,7 @@ export function AppearanceEditor() {
         <div className="xl:col-span-2 space-y-4">
           {/* 1. PROFILE DETAILS (Blue) */}
           <AccordionItem
-            title="Profile"
+            title="Profile & Story"
             icon={<Layout size={18} />}
             isOpen={openSection === "profile"}
             onClick={() => toggleSection("profile")}
@@ -186,30 +227,65 @@ export function AppearanceEditor() {
               </div>
 
               {/* Avatar Upload */}
-              <div className="relative group shrink-0 mb-2 sm:mb-0">
-                <div className="w-24 h-24 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-white ring-4 sm:ring-2 ring-white shadow-md sm:shadow-sm">
-                  {profile.avatar_url ? (
-                    <img
-                      src={profile.avatar_url}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
+              <div className="flex flex-col items-center gap-4 shrink-0 mb-2 sm:mb-0">
+                <div className="relative group">
+                  <div className="w-24 h-24 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-white ring-4 sm:ring-2 ring-white shadow-md sm:shadow-sm">
+                    {profile.avatar_url ? (
+                      <img
+                        src={profile.avatar_url}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-300 bg-slate-50">
+                        <Upload size={24} />
+                      </div>
+                    )}
+                  </div>
+                  <label className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full text-white font-bold text-[10px] uppercase tracking-wide">
+                    {uploading ? (
+                      <Loader2 className="animate-spin" size={16} />
+                    ) : (
+                      "Change"
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleFileUpload(e, "avatar_url")}
+                      disabled={uploading}
                     />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-300 bg-slate-50">
-                      <Upload size={24} />
-                    </div>
+                  </label>
+                </div>
+
+                {/* ✅ Video Story Upload */}
+                <div className="text-center w-full">
+                  <label className="flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-full cursor-pointer hover:scale-105 transition-transform shadow-md">
+                    {uploadingVideo ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <Video size={12} />
+                    )}
+                    {profile.story_video_url
+                      ? "Change Story"
+                      : "Add Video Story"}
+                    <input
+                      type="file"
+                      accept="video/mp4,video/webm,video/quicktime"
+                      className="hidden"
+                      onChange={(e) => handleFileUpload(e, "story_video_url")}
+                      disabled={uploadingVideo}
+                    />
+                  </label>
+                  {profile.story_video_url && (
+                    <button
+                      onClick={handleRemoveStory}
+                      className="text-[10px] text-red-500 font-bold mt-1 hover:underline"
+                    >
+                      Remove Story
+                    </button>
                   )}
                 </div>
-                <label className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full text-white font-bold text-[10px] uppercase tracking-wide">
-                  Change
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => handleFileUpload(e, "avatar_url")}
-                    disabled={uploading}
-                  />
-                </label>
               </div>
             </div>
           </AccordionItem>
@@ -281,10 +357,7 @@ export function AppearanceEditor() {
                           alt="bg"
                         />
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            updateProfile({ background_url: null });
-                          }}
+                          onClick={handleRemoveBackground}
                           className="absolute top-1 right-1 bg-white shadow-sm p-1 rounded-full text-red-500 z-10 hover:scale-110 transition-transform"
                         >
                           <X size={12} />
@@ -417,8 +490,8 @@ export function AppearanceEditor() {
                   onChange={(v) => updateProfile({ social_phone: v })}
                 />
                 <SocialInput
-                  icon={<MessageCircle size={16} className="text-[#25D366]" />}
-                  placeholder="https://wa.me/15550000000"
+                  icon={<WhatsApp size={16} className="text-[#25D366]" />}
+                  placeholder="https://wa.me/2348084737049"
                   value={profile.social_whatsapp}
                   onChange={(v) => updateProfile({ social_whatsapp: v })}
                 />
@@ -706,3 +779,16 @@ function SocialInput({ icon, placeholder, value, onChange }) {
     </div>
   );
 }
+
+const WhatsApp = ({ size = 24, className = "" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className={className}
+  >
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.305-.885-.653-1.48-1.459-1.653-1.756-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z" />
+  </svg>
+);

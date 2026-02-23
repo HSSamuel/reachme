@@ -1,18 +1,8 @@
 import axios from "axios";
 
 export const api = axios.create({
-  // This pulls the URL from your new .env file
-  baseURL: import.meta.env.VITE_API_URL,
+  // Fallback ensures it works even if the env var is missing during dev
+  baseURL:
+    import.meta.env.VITE_API_URL || "https://reachme-1fqo.onrender.com/api",
+  withCredentials: true, // ✅ CRITICAL: Required for sending/receiving HttpOnly cookies
 });
-
-// Interceptor to attach the JWT token from localStorage
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("reachme_token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error),
-);
